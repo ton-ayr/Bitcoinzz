@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Bitcoinzz</title>
+  <link rel="stylesheet" href="/estilo.css">
+</head>
+
+<body>
+  <div class="container" id="dashboard">
+    <h1>Bitcoinzz</h1>
+
+    <!-- Cotação -->
+    <p>
+      Cotação BTC —
+      Compra: R$ <span id="cotacao-compra">--</span>
+      |
+      Venda:  R$ <span id="cotacao-venda">--</span>
+    </p>
+
+    <!-- Saldos -->
+    <p>Saldo BRL: <span id="saldo-brl">0,00</span></p>
+    <p>Saldo BTC: <span id="saldo-btc">0.00000000</span></p>
+
+    <!-- Depósito -->
+    <h2>Depósito</h2>
+    <form id="form-deposito">
+      <input type="number" id="deposito-valor"
+             placeholder="Valor R$"
+             required min="0.01" step="0.01">
+      <button type="submit">Depositar</button>
+    </form>
+
+    <!-- Compra -->
+    <h2>Comprar BTC</h2>
+    <form id="form-compra">
+      <input type="number" id="compra-valor"
+             placeholder="Valor R$"
+             required min="0.01" step="0.01">
+      <button type="submit">Comprar</button>
+    </form>
+
+    <!-- Venda -->
+    <h2>Vender BTC</h2>
+    <form id="form-venda">
+      <input type="number" id="venda-quantidade"
+             placeholder="Quantidade BTC"
+             required min="0.00000001" step="0.00000001">
+      <button type="submit">Vender</button>
+    </form>
+
+    <button id="btn-logout">Logout</button>
+  </div>
+  <script src="/app.js"></script>
+</body>
+
+</html>
