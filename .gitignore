@@ -1,2 +1,10 @@
 node_modules
+dist
+.next
+coverage
+*.tsbuildinfo
+
+# Segredos (os exemplos são versionados)
 .env
+.env.*
+!.env.example
