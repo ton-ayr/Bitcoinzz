@@ -21,9 +21,9 @@
 | 8 | Histórico (job, TTL e backfill) | ✅ |
 | 9 | Swagger e acabamento da API | ✅ |
 | 10 | Fundação do front (Next.js + tema) | ✅ |
-| 11 | BFF, sessão e proteção de rotas | 🟨 |
-| 12 | Login e cadastro | ⬜ |
-| 13 | Shell e dashboard | ⬜ |
+| 11 | BFF, sessão e proteção de rotas | ✅ |
+| 12 | Login e cadastro | ✅ |
+| 13 | Shell e dashboard | 🟨 |
 | 14 | Depósito e compra com preview | ⬜ |
 | 15 | Venda e extrato | ⬜ |
 | 16 | Docker Compose | ⬜ |
@@ -38,7 +38,7 @@
 | ~~A1~~ | ✅ `MONGODB_URI` corrigida; API testada contra o Atlas (MongoDB 8.0.34, database `carteira`) | – |
 | A2 | ✅ Decidido: o Render fica **fora do ar até a Fase 17**. Opcional: desligar o auto-deploy no painel, para cada push não gerar um build com falha | – |
 | A3 | (Opcional, quando quiser) Conta grátis no Brevo + remetente verificado + SMTP key no `.env` | E-mail real (até lá, sai no console) |
-| A4 | Commit consolidado das Fases 3 a 7 e da revisão geral (o autor prefere commits maiores) | – |
+| ~~A4~~ | ✅ Commits consolidados até a Fase 11 (`de8bb7e`). Daqui em diante, o autor commita quando quiser (prefere commits maiores) | – |
 | ~~A5~~ | ✅ `PORT=3333` no `backend/.env` | – |
 | A6 | (Opcional) Apagar o `package-lock.json` solto em `C:/Users/ayrto` (o build do Next avisa que o ignora) e, se quiser, desligar a telemetria anônima do Next: `npx next telemetry disable` | – |
 
@@ -173,19 +173,30 @@
   O aviso de "acordando" foi conferido em print com uma API lenta simulada.
 
 ## Fase 12: Login e cadastro
-- [ ] Layout `(auth)` com hero e brilho blurple animado.
-- [ ] `LoginForm` e `RegisterForm` (RHF + Zod, mostrar/ocultar senha, botão com loading); pré-aquecimento da API ao abrir a tela.
-- [ ] Estado "Acordando o servidor…" visível quando a API demora.
-- [ ] **Testes:** mensagens de validação e regra de senha.
-- [ ] **Aceite:** cadastro → já entra logado no dashboard; login com erro mostra a mensagem genérica.
+- [x] Rodada de perguntas (autor): layout dividido (hero + formulário) e checklist da senha ao vivo (D28).
+- [x] Verificado e registrado: React Hook Form + Zod 4 (`@hookform/resolvers` 5.9) e o setup de testes de componente.
+- [x] Layout `(auth)`: hero com a marca, título em gradiente, mini gráfico que se desenha (Motion) e 3 destaques em `FocusGroup`. No celular, só a marca e o formulário.
+- [x] `LoginForm` e `RegisterForm` (RHF + Zod, com as mesmas regras e mensagens da API):
+  - validação instantânea; erros de campo vindos da API no input certo (409 → e-mail);
+  - mostrar/ocultar senha; checklist da senha ao vivo; confirmação de senha;
+  - botão com loading; "sessão expirou" (`?reason=expired`); volta para `?next=` só se for interno;
+  - toast de boas-vindas; login automático após o cadastro.
+- [x] API "acordada" assim que as telas abrem (`usePrewarmApi`).
+- [x] Componentes `Logo`, `PasswordField`, `PasswordChecklist`; utilitários `muiField` e `applyApiFieldErrors`; classe `.sr-only` (acessibilidade).
+- [x] **Testes:** schemas (normalização, regras, confirmação, checklist) e componentes com Testing Library (login: acordar a API, validação sem chamar a API, sucesso com e-mail normalizado, `next` interno e malicioso, erro 401, sessão expirada, mostrar/ocultar senha; cadastro: checklist ao vivo, confirmação diferente, 409 no campo, sucesso com toast). 71 testes no front.
+- [x] **Aceite:** no navegador real, com a API e o front em produção: senha errada → mensagem genérica; cadastro → dashboard logado ("Olá, Fulano da Silva!"); logado em `/login` → dashboard. Prints de desktop e celular conferidos.
 
 ## Fase 13: Shell e dashboard
-- [ ] Sidebar (desktop) e drawer (mobile), indicador animado do menu ativo, saudação com o nome e logout.
-- [ ] Cards de Saldo, Cotação ("ao vivo"), Volume do dia e Investido × Valor atual.
-- [ ] Gráfico de 24 h (compra × venda; pontos de backfill sinalizados) e tabela de posições.
-- [ ] Skeletons, estados de erro e de vazio.
-- [ ] **Testes:** cálculos e formatações exibidos (variação, totais).
-- [ ] **Aceite:** dados reais na tela, que se atualizam sozinhos.
+- [x] `AppShell`: menu lateral fixo no desktop e gaveta no celular (D29), indicador animado do item ativo (`layoutId` do Motion), itens em `FocusGroup` e logout com recarga completa (D27).
+- [x] `UserBadge`: Server Component que lê o cookie e busca o perfil na API, dentro de `<Suspense>` (Partial Prerender: casca estática + nome do usuário em streaming).
+- [x] Cards de Saldo (número animado), Cotação ("ao vivo" pulsando + "atualizado há 12 s"), Volume do dia (comprados e vendidos) e Investimentos (valor atual, investido, BTC e variação).
+- [x] Gráfico de área das últimas 24 h (D30): gradiente blurple, eixo Y com folga, variação do período, tooltip com horário, venda e compra, e aviso nos pontos de backfill.
+- [x] Posição dos investimentos: tabela no desktop e cards no celular, com chip de variação e marca de reinvestimento.
+- [x] Skeletons, erro com "Tentar de novo" por card, estado vazio com atalho para comprar e `error.tsx` da área logada.
+- [x] Páginas provisórias de Depositar, Comprar, Vender e Extrato (`ComingSoon`), substituídas nas Fases 14 e 15.
+- [x] Correções encontradas no navegador: data instável no pré-render (Cache Components), área do gráfico indo até R$ 0, chip vazando do card e tooltip fora do lugar dentro do card de vidro (detalhes na ARQUITETURA, seção 12).
+- [x] **Testes:** `toChartSeries` (ordem, séries, folga do eixo Y, preço constante, backfill), `periodChangePercent`, `relativeTime`, `isActivePath` e o `DashboardView` com Testing Library (saudação, cotação e volume formatados, estado vazio, tabela com variação e reinvestimento). 91 testes no front.
+- [x] **Aceite:** no navegador real, com a API (cotação e histórico reais do Mercado Bitcoin) e o front em produção: depósito, duas compras e venda parcial aparecem no dashboard; cotação e "há N s" se atualizam sozinhos; tooltip conferido com a página rolada; prints de desktop, celular e menu aberto conferidos.
 
 ## Fase 14: Depósito e compra com preview
 - [ ] `MoneyField` (máscara R$), chips de valor rápido e `ConfirmDialog`.
@@ -237,3 +248,6 @@
 | 07/10/2026 | 10 | Ajuste pedido pelo autor: spotlight removido; efeito de foco (destaque + demais foscos) em cards e botões, conferido em prints |
 | 07/10/2026 | 10 | Efeito de foco aprovado e registrado como padrão de todas as telas (CLAUDE.md) |
 | 07/10/2026 | 11 | BFF e sessão concluídos (52 testes no front; 19 cenários ponta a ponta); aguardando revisão |
+| 07/10/2026 | 12 | Login e cadastro concluídos (71 testes no front; fluxos conferidos no navegador); aguardando revisão |
+| 07/10/2026 | 11–12 | Autor commitou até a Fase 11 (`de8bb7e`) e aprovou a Fase 12. Escolhas para a Fase 13: menu lateral fixo e gráfico de área com compra e venda no tooltip |
+| 07/10/2026 | 13 | Shell e dashboard concluídos (91 testes no front; dados reais conferidos no navegador); aguardando revisão |

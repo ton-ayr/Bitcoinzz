@@ -271,15 +271,20 @@ frontend/src/
 ├── app/
 │   ├── layout.tsx               # fonte, metadata, Providers
 │   ├── (auth)/login · register  # layout dividido com hero animado
-│   ├── (app)/                   # layout protegido (Server Component lê o perfil)
+│   ├── (app)/                   # AppShell (menu) + UserBadge em <Suspense> + error.tsx
 │   │   └── dashboard · deposit · buy · sell · statement
 │   └── api/                     # Route Handlers: auth/login · auth/register · auth/logout · [...path]
 ├── proxy.ts                     # Next 16 (antigo middleware): protege rotas
 ├── features/                    # auth · dashboard · trade · statement
-├── components/                  # AnimatedBackground, FocusGroup e demais componentes visuais
-├── lib/                         # http, query-keys, format (Intl pt-BR)
+├── components/                  # AppShell, UserBadge, StatCard, AnimatedNumber, FocusGroup e demais componentes visuais
+├── lib/                         # http, query-keys, format (Intl pt-BR), time, nav
 └── theme/                       # tema MUI (tokens + overrides)
 ```
+
+**Área logada (Fase 13):**
+- O `layout.tsx` de `(app)` é estático; só o `UserBadge` (Server Component que lê o cookie e busca o perfil) fica dentro de `<Suspense>`. Com o Cache Components, a casca (menu, títulos, skeletons) sai pronta no HTML e o nome do usuário chega em streaming (Partial Prerender, ◐ no build).
+- O dashboard é um Client Component que busca cada bloco com o TanStack Query (seção 8.3). Cada card carrega e falha sozinho, com "Tentar de novo" próprio.
+- Componentes cliente pré-renderizados não podem ler a hora (`new Date()`) durante o render. O "há 12 s" usa `useSyncExternalStore` com valor `null` no servidor e um relógio que anda a cada segundo no navegador.
 
 ### 8.2 Sessão (BFF)
 
@@ -398,6 +403,9 @@ Limites que importam (verificados; ver seção 12):
 | D25 | Manter `cacheComponents` (e `partialPrefetching`) ligado, como o create-next-app 16.4 gera | Desligar | Estável no Next 16 e será o padrão obrigatório na próxima versão principal. Impacto: leituras de cookies ficam dentro de `<Suspense>` (casca estática + streaming) | Revisão técnica (Fase 10) |
 | D26 | BFF com allowlist exata (método + caminho) e checagem de `Origin` nos POST | Repassar tudo que vier em `/api/*` | Menor superfície de ataque: o navegador só alcança as 10 operações do admin; o `Origin` é uma segunda barreira contra CSRF | Revisão técnica (Fase 11) |
 | D27 | Logout e sessão expirada fazem recarga completa da página | Navegação interna (`router.push`) | Garante que o cache do React Query e as rotas mantidas pelo Cache Components não guardem dados do usuário anterior | Revisão técnica (Fase 11) |
+| D28 | Login e cadastro com layout dividido (hero + formulário) e checklist da senha ao vivo | Card centralizado; erro só ao enviar | Escolha do autor: vitrine do produto e menos frustração ao criar a senha | Autor |
+| D29 | Menu lateral fixo no desktop e gaveta no celular | Barra superior com abas; menu recolhível | Escolha do autor: padrão de painel administrativo, com as 5 telas sempre à vista | Autor |
+| D30 | Gráfico de área com o preço de venda; compra e venda no tooltip | Duas linhas (compra × venda); candles | Escolha do autor: compra e venda quase se sobrepõem na escala de 24 h, então duas linhas viram uma só; a área com gradiente é mais legível, e o tooltip mostra os dois valores | Autor |
 
 ## 12. Verificações de documentação oficial
 
@@ -442,7 +450,13 @@ Regra do projeto: antes de cada integração, consultar a fonte oficial atual e 
 | 07/10/2026 | `npm audit` do front (Fase 10) | `npm audit` / `npm audit --omit=dev` | **0** vulnerabilidades em produção. 5 "altas" só em ferramenta de lint (`braces`, via `eslint-config-next` → `fast-glob`), **sem versão corrigida**; o `--force` faria downgrade para o `eslint-config-next` 14. Risco aceito: afeta só o lint local |
 | 07/10/2026 | `proxy.ts` do Next 16 (Fase 11) | [nextjs.org: proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy) | Em `src/`, exportando `proxy(request)` e `config.matcher`; roda em Node.js; `request.cookies.has()`; `NextResponse.redirect`. A doc recomenda não depender só do proxy para autenticação |
 | 07/10/2026 | `cookies()` e Route Handlers no Next 16 (Fase 11) | [nextjs.org: cookies](https://nextjs.org/docs/app/api-reference/functions/cookies) · [route.js](https://nextjs.org/docs/app/api-reference/file-conventions/route) | `cookies()` é assíncrono; `set`/`delete` só em Route Handlers e Server Functions; opções `httpOnly`, `secure`, `sameSite`, `maxAge`, `path`. `params` do catch-all é uma Promise (`{ path: string[] }`); `GET` é dinâmico por padrão |
+| 07/10/2026 | React Hook Form + Zod 4 (Fase 12) | [README do @hookform/resolvers](https://github.com/react-hook-form/resolvers) + `peerDependencies` | `zodResolver` de `@hookform/resolvers/zod` aceita `zod ^3.25 \|\| ^4`; com schemas que transformam dados, usar `useForm<z.input<S>, unknown, z.output<S>>`. **Atenção:** o npm instalou o Zod 3 por causa do `eslint-plugin-react-hooks`; foi preciso fixar `zod@^4.6.5` no front |
+| 07/10/2026 | Testes de componente (Fase 12) | Prática (Vitest 5 + jsdom 30 + Testing Library 16 + `@vitejs/plugin-react`) | Arquivos de componente pedem `// @vitest-environment jsdom`; `next/navigation` e `sonner` são simulados com `vi.mock` |
+| 07/10/2026 | MUI X Charts 9.15 (Fase 13) | [mui.com/x/react-charts](https://mui.com/x/react-charts/) + `package.json` e tipos do pacote | `@mui/x-charts` (sem "pro") tem licença **MIT**: custo zero. `LineChart` com `area`, `curve`, `showMark` e `baseline: number \| 'min' \| 'max'`; tooltip próprio por `slots.tooltip`, montado com `ChartsTooltipContainer` + `useAxesTooltip()`; `<defs>` com gradiente entra como filho do gráfico |
+| 07/10/2026 | Área do gráfico (Fase 13) | Prática (prints) | Sem `baseline`, a área vai até o valor 0, mesmo com o eixo Y começando em R$ 415 mil, e o gradiente fica chapado. Com `baseline: 'min'`, a área para no piso do eixo |
+| 07/10/2026 | `new Date()` com Cache Components (Fase 13) | Erro do `next build` + [nextjs.org: cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents) | O build falha com "encountered the unstable value `new Date()` in a Client Component" quando um componente pré-renderizado lê a hora no render. Solução usada: `useSyncExternalStore` com snapshot `null` no servidor |
+| 07/10/2026 | Tooltip do MUI X dentro de card de vidro (Fase 13) | Código do `ChartsTooltipContainer` 9.15 + teste no navegador | O tooltip é um Popper `position: fixed` renderizado **dentro do gráfico** (`container` padrão). Um ancestral com `backdrop-filter` (o Card de vidro) vira o bloco de referência do `fixed`, e o tooltip aparece deslocado. Correção: `container={() => document.body}`. Conferido com a página rolada |
 
 **Pendentes**, a conferir antes da fase indicada:
-- MUI X Charts e Date Pickers (Fases 13 e 15).
+- MUI X Date Pickers (Fase 15).
 - Configuração de deploy no Render e na Vercel (Fase 17).

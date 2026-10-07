@@ -59,6 +59,18 @@ export const theme = createTheme({
           fontVariantNumeric: 'tabular-nums',
           WebkitFontSmoothing: 'antialiased',
         },
+        // Texto só para leitores de tela (acessibilidade).
+        '.sr-only': {
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        },
         '::selection': { backgroundColor: alpha(colors.blurple, 0.45), color: '#fff' },
         '*:focus-visible': { outline: `2px solid ${colors.blurpleLight}`, outlineOffset: 2 },
         '*::-webkit-scrollbar': { width: 10, height: 10 },
