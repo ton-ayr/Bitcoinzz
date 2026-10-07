@@ -23,8 +23,8 @@
 | 10 | Fundação do front (Next.js + tema) | ✅ |
 | 11 | BFF, sessão e proteção de rotas | ✅ |
 | 12 | Login e cadastro | ✅ |
-| 13 | Shell e dashboard | 🟨 |
-| 14 | Depósito e compra com preview | ⬜ |
+| 13 | Shell e dashboard | ✅ |
+| 14 | Depósito e compra com preview | 🟨 |
 | 15 | Venda e extrato | ⬜ |
 | 16 | Docker Compose | ⬜ |
 | 17 | README e deploy | ⬜ |
@@ -199,10 +199,15 @@
 - [x] **Aceite:** no navegador real, com a API (cotação e histórico reais do Mercado Bitcoin) e o front em produção: depósito, duas compras e venda parcial aparecem no dashboard; cotação e "há N s" se atualizam sozinhos; tooltip conferido com a página rolada; prints de desktop, celular e menu aberto conferidos.
 
 ## Fase 14: Depósito e compra com preview
-- [ ] `MoneyField` (máscara R$), chips de valor rápido e `ConfirmDialog`.
-- [ ] Compra: preview ao vivo (cotação de venda, BTC estimado, saldo depois da compra) → confirmação → toast.
-- [ ] **Testes:** cálculo do preview e limite pelo saldo.
-- [ ] **Aceite:** depósito e compra atualizam o dashboard sem recarregar a página.
+- [x] `MoneyField` "estilo app de banco" (D31): os dígitos entram pelos centavos, sem vírgula para errar, com teclado numérico no celular; vazio quando o valor é zero.
+- [x] `ConfirmDialog` e componentes da feature `trade` (reaproveitados na venda): `SummaryList`, `SuccessPanel` e `TradeLayout` (formulário + prévia lado a lado; empilhados no celular).
+- [x] Depósito: atalhos que somam (+R$ 100, +R$ 500, +R$ 1.000), resumo com saldo depois e limite de R$ 1.000.000,00 (igual à API); sem diálogo (D33).
+- [x] Compra: atalhos de 25%, 50% e Tudo do saldo; prévia ao vivo (cotação de venda, BTC estimado com o mesmo arredondamento da API, saldo depois); diálogo "Revise a compra" (D33); aviso e atalho para depositar quando não há saldo.
+- [x] Depois do sucesso, o formulário vira um resumo com o resultado real da API e atalhos (D32), além do toast. O cache é atualizado na hora: o saldo vem na resposta, e posição, volume e extrato são buscados de novo.
+- [x] Lógica de dinheiro do front em inteiros (`lib/money.ts`: centavos, satoshis e BigInt), espelhando a API; `useNow` virou hook compartilhado; `errorMessage` em `lib/http.ts`.
+- [x] Correções encontradas no navegador: dígito digitado antes de "R$ 0,00" (foco automático com o cursor no início) e chip de variação sobre o rótulo dos KPIs (cards de 4 colunas só a partir de 1360 px; rótulo quebra em 2 linhas).
+- [x] **Testes:** `lib/money` (conversões, BTC estimado, leitura do campo), `preview` (saldo depois, limites e mensagens iguais às da API, 0 satoshi, %), telas com Testing Library (digitação pelos centavos, cursor no início, apagar, atalhos, validação sem chamar a API, corpo enviado em R$, resultado real, erro da API, cancelar, sem saldo). 131 testes no front.
+- [x] **Aceite:** no navegador real, com a API e a cotação reais: depósito de R$ 5.000 → compra de R$ 1.500 com confirmação → "Ver no dashboard" mostra o saldo e o investimento novos sem recarregar a página. Prints de desktop e celular conferidos, sem erros no console.
 
 ## Fase 15: Venda e extrato
 - [ ] Venda em R$ com preview (BTC estimado), limite pelo valor da posição e explicação de FIFO e reinvestimento.
@@ -251,3 +256,5 @@
 | 07/10/2026 | 12 | Login e cadastro concluídos (71 testes no front; fluxos conferidos no navegador); aguardando revisão |
 | 07/10/2026 | 11–12 | Autor commitou até a Fase 11 (`de8bb7e`) e aprovou a Fase 12. Escolhas para a Fase 13: menu lateral fixo e gráfico de área com compra e venda no tooltip |
 | 07/10/2026 | 13 | Shell e dashboard concluídos (91 testes no front; dados reais conferidos no navegador); aguardando revisão |
+| 07/10/2026 | 13 | Aprovada pelo autor. Escolhas da Fase 14: campo "estilo app de banco", resumo de sucesso na tela, confirmação só na compra, atalhos fixos no depósito e % do saldo na compra |
+| 07/10/2026 | 14 | Depósito e compra concluídos (131 testes no front; fluxo real conferido no navegador); aguardando revisão |

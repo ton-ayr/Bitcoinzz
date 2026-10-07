@@ -11,12 +11,12 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import { keyframes } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { useSyncExternalStore } from 'react';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { FocusGroup } from '@/components/FocusGroup';
 import { StatCard } from '@/components/StatCard';
 import { formatBRL, formatBTC, formatPercent } from '@/lib/format';
 import { relativeTime } from '@/lib/time';
+import { useNow } from '@/lib/use-now';
 import { colors } from '@/theme/tokens';
 import { useBalance, usePosition, useQuote, useVolume } from './queries';
 
@@ -25,20 +25,6 @@ const pulse = keyframes`
   70%  { box-shadow: 0 0 0 9px rgba(35, 165, 90, 0); }
   100% { box-shadow: 0 0 0 0 rgba(35, 165, 90, 0); }
 `;
-
-// Relógio que "anda" a cada segundo, só no navegador (para o "há 12 s" da cotação).
-// No servidor (pré-renderização do Cache Components) devolve null: nenhuma data entra no HTML estático.
-function subscribeToSeconds(onTick: () => void) {
-  const timer = setInterval(onTick, 1000);
-  return () => clearInterval(timer);
-}
-const currentSecond = () => Math.floor(Date.now() / 1000);
-const noTimeOnServer = () => null;
-
-function useNow(): Date | null {
-  const second = useSyncExternalStore(subscribeToSeconds, currentSecond, noTimeOnServer);
-  return second === null ? null : new Date(second * 1000);
-}
 
 function LiveBadge() {
   return (
@@ -59,25 +45,32 @@ function LiveBadge() {
   );
 }
 
-/** Chip verde/vermelho com a variação em %. */
+/** Chip verde/vermelho com a variação em %. Sem seta (`showIcon={false}`) quando falta espaço. */
 export function VariationChip({
   value,
   size = 'small',
+  showIcon = true,
 }: {
   value: number;
   size?: 'small' | 'medium';
+  showIcon?: boolean;
 }) {
   const up = value > 0;
   const down = value < 0;
+  const arrow = up ? <ArrowUpwardRoundedIcon /> : down ? <ArrowDownwardRoundedIcon /> : undefined;
   return (
     <Chip
       size={size}
       color={up ? 'success' : down ? 'error' : 'default'}
-      icon={up ? <ArrowUpwardRoundedIcon /> : down ? <ArrowDownwardRoundedIcon /> : undefined}
+      icon={showIcon ? arrow : undefined}
       label={formatPercent(value)}
     />
   );
 }
+
+// 4 cards lado a lado só com largura para eles (abaixo disso, 2 × 2); em 1200–1360 px os
+// rótulos e a cotação ficavam espremidos.
+const FOUR_COLUMNS = '@media (min-width: 1360px)';
 
 export function KpiCards() {
   const balance = useBalance();
@@ -91,7 +84,8 @@ export function KpiCards() {
       sx={{
         display: 'grid',
         gap: 2.5,
-        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+        [FOUR_COLUMNS]: { gridTemplateColumns: 'repeat(4, 1fr)' },
       }}
     >
       <StatCard
@@ -133,11 +127,11 @@ export function KpiCards() {
       />
 
       <StatCard
-        label="Investimentos"
+        label="Posição"
         icon={<PieChartRoundedIcon />}
         badge={
           position.data && position.data.investments.length > 0 ? (
-            <VariationChip value={position.data.summary.returnPercent} />
+            <VariationChip value={position.data.summary.returnPercent} showIcon={false} />
           ) : undefined
         }
         loading={position.isPending}

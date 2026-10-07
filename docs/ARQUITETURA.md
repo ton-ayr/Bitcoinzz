@@ -276,8 +276,8 @@ frontend/src/
 │   └── api/                     # Route Handlers: auth/login · auth/register · auth/logout · [...path]
 ├── proxy.ts                     # Next 16 (antigo middleware): protege rotas
 ├── features/                    # auth · dashboard · trade · statement
-├── components/                  # AppShell, UserBadge, StatCard, AnimatedNumber, FocusGroup e demais componentes visuais
-├── lib/                         # http, query-keys, format (Intl pt-BR), time, nav
+├── components/                  # AppShell, UserBadge, StatCard, MoneyField, ConfirmDialog, FocusGroup e demais componentes visuais
+├── lib/                         # http, query-keys, format (Intl pt-BR), money (centavos/satoshis), time, use-now, nav
 └── theme/                       # tema MUI (tokens + overrides)
 ```
 
@@ -313,7 +313,8 @@ frontend/src/
 | Histórico | a cada 60 s |
 | Saldo, extrato, perfil | ao abrir a tela e depois de cada operação |
 
-- As mutations (depósito, compra, venda) invalidam saldo, posição, extrato e volume e mostram um toast.
+- As mutations (depósito, compra, venda) mostram um toast e atualizam o cache: o saldo vem na própria resposta (`setQueryData`), e posição, volume e extrato são invalidados (buscados de novo). Um 422 de saldo também busca o saldo de novo.
+- **Prévia = mesmas regras da API.** O front calcula em inteiros (`lib/money.ts`: centavos, satoshis, BigInt), com o mesmo arredondamento (BTC para baixo) e as mesmas mensagens. A API continua sendo a autoridade: a compra usa a cotação do momento da confirmação, e a tela de sucesso mostra o resultado real devolvido por ela.
 
 ### 8.4 Design tokens
 
@@ -406,6 +407,9 @@ Limites que importam (verificados; ver seção 12):
 | D28 | Login e cadastro com layout dividido (hero + formulário) e checklist da senha ao vivo | Card centralizado; erro só ao enviar | Escolha do autor: vitrine do produto e menos frustração ao criar a senha | Autor |
 | D29 | Menu lateral fixo no desktop e gaveta no celular | Barra superior com abas; menu recolhível | Escolha do autor: padrão de painel administrativo, com as 5 telas sempre à vista | Autor |
 | D30 | Gráfico de área com o preço de venda; compra e venda no tooltip | Duas linhas (compra × venda); candles | Escolha do autor: compra e venda quase se sobrepõem na escala de 24 h, então duas linhas viram uma só; a área com gradiente é mais legível, e o tooltip mostra os dois valores | Autor |
+| D31 | Campo de R$ "estilo app de banco" (dígitos entram pelos centavos), feito no projeto | Digitação livre formatada (`react-number-format`) | Escolha do autor: sem vírgula para errar e sem dependência nova; a regra é uma função pequena e testada (`parseMoneyInput`) | Autor |
+| D32 | Depois de depositar ou comprar, o formulário vira um resumo com o resultado real e atalhos | Toast e voltar ao dashboard; toast e limpar o formulário | Escolha do autor: o usuário vê o que de fato aconteceu (BTC comprado, cotação usada, novo saldo) | Autor |
+| D33 | Diálogo de confirmação só na compra; atalhos fixos no depósito e % do saldo na compra | Confirmar as duas; sem atalhos | Escolha do autor: a compra depende da cotação e gasta saldo; o depósito é simulado e direto | Autor |
 
 ## 12. Verificações de documentação oficial
 
@@ -456,6 +460,8 @@ Regra do projeto: antes de cada integração, consultar a fonte oficial atual e 
 | 07/10/2026 | Área do gráfico (Fase 13) | Prática (prints) | Sem `baseline`, a área vai até o valor 0, mesmo com o eixo Y começando em R$ 415 mil, e o gradiente fica chapado. Com `baseline: 'min'`, a área para no piso do eixo |
 | 07/10/2026 | `new Date()` com Cache Components (Fase 13) | Erro do `next build` + [nextjs.org: cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents) | O build falha com "encountered the unstable value `new Date()` in a Client Component" quando um componente pré-renderizado lê a hora no render. Solução usada: `useSyncExternalStore` com snapshot `null` no servidor |
 | 07/10/2026 | Tooltip do MUI X dentro de card de vidro (Fase 13) | Código do `ChartsTooltipContainer` 9.15 + teste no navegador | O tooltip é um Popper `position: fixed` renderizado **dentro do gráfico** (`container` padrão). Um ancestral com `backdrop-filter` (o Card de vidro) vira o bloco de referência do `fixed`, e o tooltip aparece deslocado. Correção: `container={() => document.body}`. Conferido com a página rolada |
+
+| 07/10/2026 | Campo de R$ com foco automático (Fase 14) | Prática (Chrome headless + teste com o cursor no início) | Com "R$ 0,00" no campo, o foco automático pode deixar o cursor no **início**, e o 1º dígito entrava antes dos zeros ("4" → R$ 40,00). Mover o cursor via `onSelect` do React não foi confiável na página pré-renderizada (o foco pode acontecer antes da hidratação, e o React não o vê). Solução: campo **vazio** no zero, com "R$ 0,00" como placeholder |
 
 **Pendentes**, a conferir antes da fase indicada:
 - MUI X Date Pickers (Fase 15).

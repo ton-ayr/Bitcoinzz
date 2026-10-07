@@ -1,7 +1,7 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import { DepositView } from '@/features/trade/DepositView';
 
 export const metadata = { title: 'Depositar' };
 
 export default function Page() {
-  return <ComingSoon title="Depositar" phase={14} />;
+  return <DepositView />;
 }

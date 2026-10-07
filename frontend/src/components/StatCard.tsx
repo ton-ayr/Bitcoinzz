@@ -51,10 +51,12 @@ export function StatCard({
         >
           {icon}
         </Box>
+        {/* Em card estreito o rótulo quebra em 2 linhas (cabem na altura do ícone), sem passar
+            por baixo do badge; `anywhere` quebra até uma palavra longa demais. */}
         <Typography
           variant="overline"
           color="text.secondary"
-          sx={{ flexGrow: 1, minWidth: 0, lineHeight: 1.4 }}
+          sx={{ flexGrow: 1, minWidth: 0, lineHeight: 1.4, overflowWrap: 'anywhere' }}
         >
           {label}
         </Typography>

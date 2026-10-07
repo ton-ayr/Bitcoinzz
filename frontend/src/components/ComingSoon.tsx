@@ -3,7 +3,7 @@ import Card from '@mui/material/Card';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 
-/** PROVISÓRIO: telas que chegam nas Fases 14 e 15 (evita 404 nos links do menu). */
+/** PROVISÓRIO: telas que chegam na Fase 15 (evita 404 nos links do menu). */
 export function ComingSoon({ title, phase }: { title: string; phase: number }) {
   return (
     <>

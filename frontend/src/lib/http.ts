@@ -22,6 +22,13 @@ export class ApiError extends Error {
   }
 }
 
+const CONNECTION_ERROR = 'Não foi possível conectar. Verifique sua internet e tente novamente.';
+
+/** Mensagem para o usuário: a da API (ex.: "Saldo insuficiente…") ou a de falha de conexão. */
+export function errorMessage(error: unknown): string {
+  return error instanceof ApiError ? error.message : CONNECTION_ERROR;
+}
+
 /** Lê a resposta: devolve o JSON se deu certo; senão, lança `ApiError` com a mensagem da API. */
 export async function parseApiResponse<T>(response: Response): Promise<T> {
   const body: unknown = await response.json().catch(() => null);

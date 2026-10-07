@@ -1,7 +1,7 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import { PurchaseView } from '@/features/trade/PurchaseView';
 
 export const metadata = { title: 'Comprar bitcoin' };
 
 export default function Page() {
-  return <ComingSoon title="Comprar bitcoin" phase={14} />;
+  return <PurchaseView />;
 }

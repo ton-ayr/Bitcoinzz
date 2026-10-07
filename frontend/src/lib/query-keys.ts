@@ -10,4 +10,6 @@ export const queryKeys = {
   position: ['position'] as const,
   history: ['history'] as const,
   statement: (from?: string, to?: string) => ['statement', from ?? null, to ?? null] as const,
+  /** Prefixo de todos os extratos: invalidar esta chave atualiza qualquer intervalo de datas. */
+  statements: ['statement'] as const,
 };
