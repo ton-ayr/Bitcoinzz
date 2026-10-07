@@ -58,23 +58,33 @@ Versões conferidas no npm em 06/10/2026; as definitivas ficam fixadas nos `pack
 
 ```
 backend/
-├── docs/openapi.yaml            # Swagger (design-first), servido em /docs
+├── docs/openapi.yaml            # Swagger (design-first), servido em /docs; validado por teste de contrato
 ├── src/
-│   ├── server.ts                # bootstrap: env → banco → job → listen; graceful shutdown
+│   ├── server.ts                # bootstrap: .env → validação → banco → job → listen; graceful shutdown
 │   ├── app.ts                   # createApp(container): middlewares globais, rotas, /docs, 404, erros
 │   ├── container.ts             # composition root: cria repositories → services → controllers
 │   ├── routes.ts                # junta os routers dos módulos
 │   ├── config/                  # env.ts (Zod), database.ts, logger.ts
+│   ├── types/express.d.ts       # acrescenta req.userId ao Request do Express
 │   ├── shared/
-│   │   ├── errors/              # AppError e subclasses
+│   │   ├── errors/              # AppError e subclasses (400, 401, 404, 409, 422, 429, 503)
 │   │   ├── http/                # authenticate, validate, rate-limit, error-handler, not-found
 │   │   ├── database/            # TransactionRunner
 │   │   ├── money.ts             # centavos/satoshis ↔ decimais; conversões com BigInt
+│   │   ├── format.ts            # R$ e BTC em pt-BR (textos de e-mail)
 │   │   └── dates.ts             # fuso America/Sao_Paulo, início do dia, slots de 10 min
 │   └── modules/
-│       ├── users/  auth/  account/  quotes/  investments/
-│       └── transactions/  history/  notifications/
-└── tests/  unit/  integration/  helpers/
+│       ├── docs/                # GET /, GET /docs (Swagger UI), GET /docs/openapi.json
+│       ├── health/              # GET /health
+│       ├── users/               # model + repository
+│       ├── auth/                # cadastro, login, PasswordHasher, TokenService
+│       ├── account/             # perfil, depósito, saldo
+│       ├── notifications/       # Mailer (SMTP | console), templates, NotificationService
+│       ├── transactions/        # lançamentos; extrato (StatementService) e volume (VolumeService); /extract, /volume
+│       ├── quotes/              # MercadoBitcoinClient (v4) + QuoteService (cache 10 s); GET /btc/price
+│       ├── investments/         # compra, posição e venda FIFO (Purchase/Position/SaleService); /btc/*
+│       └── history/             # snapshots de 10 em 10 min: HistoryService, HistoryJob (node-cron), GET /history
+└── tests/  unit/  integration/  helpers/   # fakes em memória + MongoDB em memória
 ```
 
 ### 3.2 Camadas
@@ -144,11 +154,10 @@ erDiagram
     date createdAt
   }
   PRICE_SNAPSHOT {
-    date bucket "único, múltiplo de 10 min"
+    date bucket "único + TTL 90 dias; múltiplo de 10 min"
     int buyCents
     int sellCents
     string source "TICKER | BACKFILL"
-    date createdAt "TTL 90 dias"
   }
 ```
 
@@ -157,7 +166,7 @@ erDiagram
 | `users` | `{ email: 1 }` único | Login e e-mail duplicado (409) |
 | `investments` | `{ userId: 1, status: 1, purchasedAt: 1 }` | Posição e fila FIFO da venda |
 | `transactions` | `{ userId: 1, createdAt: -1 }` · `{ type: 1, createdAt: 1 }` | Extrato por período · volume do dia |
-| `pricesnapshots` | `{ bucket: 1 }` único · `{ createdAt: 1 }` TTL de 90 dias | Job idempotente (sem duplicar slots) · expurgo automático |
+| `pricesnapshots` | `{ bucket: 1 }` **único e TTL de 90 dias** (um só índice) | Job idempotente (sem duplicar slots) e expurgo automático contado a partir do horário da cotação |
 
 - O BTC do cliente **não** fica guardado no usuário: é a soma de `btcSats` dos investimentos `OPEN`, a fonte única da verdade.
 - O saldo em R$ fica no usuário e só muda de forma atômica (`$inc` com condição), sempre na mesma transação do lançamento no extrato.
@@ -175,13 +184,14 @@ Alinhado à coleção Postman oficial do desafio. Erros no formato `{ statusCode
 | GET | `/account/balance` | ✔ | – | 200 `{ balance }` | 401 |
 | GET | `/btc/price` | ✔ | – | 200 `{ buy, sell, updatedAt }` | 503 |
 | POST | `/btc/purchase` | ✔ | `{ amount }` (R$) | 201 `{ amount, btcAmount, btcPrice, balance }` | 400, 422, 503 |
-| POST | `/btc/sell` | ✔ | `{ amount }` (R$) | 201 `{ amount, btcAmount, btcPrice, reinvestment?, balance }` | 400, 422, 503 |
-| GET | `/btc` | ✔ | – | 200 `{ summary, investments[] }` | 503 |
-| GET | `/extract` | ✔ | `?from=YYYY-MM-DD&to=YYYY-MM-DD` | 200 `[{ id, type, amount, btcAmount?, btcPrice?, createdAt }]` | 400 |
-| GET | `/volume` | ✔ | – | 200 `{ date, bought, sold }` | 401 |
-| GET | `/history` | ✔ | – | 200 `[{ timestamp, buy, sell, source }]` | 401 |
+| POST | `/btc/sell` | ✔ | `{ amount }` (R$) | 201 `{ amount, btcAmount, btcPrice, reinvestment: { amount, btcAmount, btcPrice } \| null, balance }` | 400, 422, 503 |
+| GET | `/btc` | ✔ | – | 200 `{ summary: { invested, btcAmount, currentValue, returnPercent, currentBtcPrice }, investments: [{ id, purchasedAt, investedAmount, btcAmount, btcPriceAtPurchase, priceVariationPercent, currentValue, origin }] }` | 503 |
+| GET | `/extract` | ✔ | `?from=YYYY-MM-DD&to=YYYY-MM-DD` (opcionais) | 200 `{ from, to, transactions: [{ id, type, amount, btcAmount, btcPrice, createdAt }] }` (`btcAmount`/`btcPrice` = `null` em depósitos) | 400 |
+| GET | `/volume` | ✔ | – | 200 `{ date, bought, sold }` (BTC; todos os clientes; dia corrente em SP) | 401 |
+| GET | `/history` | ✔ | – | 200 `[{ timestamp, buy, sell, source }]` (até 144 pontos, ordem crescente; `source`: `TICKER` ou `BACKFILL`) | 401 |
 | GET | `/health` | – | – | 200 `{ status, database }` | 503 |
-| GET | `/docs` | – | – | Swagger UI | – |
+| GET | `/docs` | – | – | Swagger UI (`/docs/openapi.json` = spec) | – |
+| GET | `/` | – | – | 200 `{ name, docs, health }` | – |
 
 ## 6. Caminho de uma mensagem: venda de R$ 600
 
@@ -212,7 +222,7 @@ sequenceDiagram
   CT->>SV: sell(userId, 60000)
   SV->>Q: getCurrent()
   alt cache expirado (> 10 s)
-    Q->>MB: GET /api/BTC/ticker/
+    Q->>MB: GET /api/v4/tickers?symbols=BTC-BRL
     MB-->>Q: { buy, sell } validado com Zod
   end
   Q-->>SV: buyCents
@@ -242,14 +252,15 @@ Pontos de falha e como cada um aparece para o cliente:
 
 ## 7. Jobs: histórico de cotações
 
-- **Coleta:** `node-cron` com `*/10 * * * *` no fuso `America/Sao_Paulo`, além de uma execução no boot.
-  - Cada execução faz upsert por `bucket` (horário arredondado para baixo em múltiplos de 10 min).
-  - O índice único em `bucket` torna o job **idempotente**: com várias instâncias da API, só um registro por slot sobrevive.
-- **Backfill:** como a API dorme no plano gratuito, no boot o serviço calcula quais dos 144 slots das últimas 24 h estão vazios e os preenche com os candles públicos do Mercado Bitcoin.
-  - Esses pontos são marcados com `source: BACKFILL`.
-  - São aproximados, porque o candle traz o preço negociado e não o par compra/venda.
-  - O endpoint será conferido na doc oficial antes da Fase 8.
-- **Expurgo:** índice TTL de 90 dias em `createdAt`. O próprio MongoDB remove os registros antigos (o monitor de TTL roda a cada ~60 s); não há código de limpeza.
+- **Coleta:** `node-cron` com `*/10 * * * *` no fuso `America/Sao_Paulo` (`noOverlap`), mais uma execução na subida da API.
+  - Cada execução grava o slot atual (horário arredondado para baixo em múltiplos de 10 min) com `$setOnInsert` + `upsert`.
+  - O índice único em `bucket` torna o job **idempotente**: com várias instâncias da API, só um registro por slot sobrevive (testado com 5 gravações simultâneas).
+- **Backfill:** como a API dorme no plano gratuito, na subida o serviço calcula quais dos slots das últimas 24 h estão vazios e os preenche numa **única** chamada ao `/candles` (resolução 1 min).
+  - Só existe candle nos minutos com negociação. Por isso cada slot recebe o **último candle que fechou antes dele**: o candle das 08:09 fecha às 08:10.
+  - Esses pontos são marcados `source: BACKFILL` e são aproximados, porque o candle traz o preço negociado e não o par compra/venda (compra = venda).
+  - O slot atual nunca vem do backfill: ele é coletado com a cotação real.
+- **Expurgo:** o mesmo índice de `bucket` é TTL de 90 dias. O MongoDB remove sozinho os registros cujo horário passou de 90 dias (o monitor de TTL roda a cada ~60 s); não há código de limpeza.
+- **Falhas:** erros de coleta ou de backfill viram aviso no log e nunca derrubam a API; o slot perdido é preenchido no próximo backfill.
 
 ## 8. Front
 
@@ -265,16 +276,28 @@ frontend/src/
 │   └── api/                     # Route Handlers: auth/login · auth/register · auth/logout · [...path]
 ├── proxy.ts                     # Next 16 (antigo middleware): protege rotas
 ├── features/                    # auth · dashboard · trade · statement
-├── components/                  # componentes visuais reutilizáveis
+├── components/                  # AnimatedBackground, FocusGroup e demais componentes visuais
 ├── lib/                         # http, query-keys, format (Intl pt-BR)
 └── theme/                       # tema MUI (tokens + overrides)
 ```
 
 ### 8.2 Sessão (BFF)
 
-1. O login envia e-mail e senha para `/api/auth/login` (Route Handler). Ele chama `POST /login` na API e grava o JWT num cookie `httpOnly; Secure; SameSite=Lax` de **8 h**, a mesma validade do token.
-2. Toda chamada de dados vai para `/api/<rota>`. O Route Handler `[...path]` aceita só as rotas da allowlist (`account`, `btc`, `extract`, `volume`, `history`), acrescenta `Authorization: Bearer` e repassa para `API_URL`. Essa variável só existe no servidor, por isso o navegador não conhece a URL da API.
-3. Um 401 vindo da API apaga o cookie. O `proxy.ts` manda quem não tem cookie para `/login` e quem já está logado para fora de `/login`.
+1. **Login:** a tela envia e-mail e senha para `/api/auth/login` (Route Handler). Ele chama `POST /login` na API e grava o JWT no cookie `bitcoinzz_session` (`HttpOnly; Secure em produção; SameSite=Lax; Max-Age` = validade do JWT, 8 h). O token **não** volta no corpo da resposta.
+2. **Cadastro:** `/api/auth/register` cria a conta e já faz o login automático.
+3. **Dados:** toda chamada vai para `/api/<rota>`. O Route Handler `[...path]`:
+   - só aceita a **allowlist exata** (método + caminho: `GET account`, `GET account/balance`, `POST account/deposit`, `GET btc`, `GET btc/price`, `POST btc/purchase`, `POST btc/sell`, `GET extract`, `GET volume`, `GET history`);
+   - exige o cookie;
+   - repassa com `Authorization: Bearer` para `API_URL`, uma variável só de servidor, então o navegador não conhece a URL da API.
+4. **CSRF:** além do `SameSite=Lax`, os `POST` com `Origin` de outro site recebem 403.
+5. **Erros:**
+   - API demorando → 504; API fora do ar → 503 (com mensagem);
+   - 401 da API (token expirado ou adulterado) apaga o cookie, e o navegador volta para o login com uma **recarga completa**, sem dados da sessão anterior na memória.
+6. **Proteção das páginas:** o `proxy.ts` decide por `resolveAccess()` (`lib/access.ts`).
+   - Sem cookie, as páginas protegidas levam a `/login?next=...`, e o `next` só aceita caminhos internos (contra "open redirect").
+   - Com cookie, `/login` e `/register` levam ao dashboard.
+   - Seguindo a doc do Next, o proxy **não é a única barreira**: o BFF também exige sessão.
+7. **API dormindo:** `/api/health` "acorda" a API, e toda requisição passa por `serverWake.track()`. Se alguma passa de 2,5 s, aparece o aviso **"Acordando o servidor…"**, que some quando todas terminam.
 
 ### 8.3 Dados
 
@@ -289,18 +312,30 @@ frontend/src/
 
 ### 8.4 Design tokens
 
+Definidos em `frontend/src/theme/tokens.ts`; o tema MUI fica em `theme.ts`. Escolhas do autor: fonte **Plus Jakarta Sans**, superfícies de **vidro fosco** (glassmorphism), **só dark** e animações **intensas**.
+
 | Token | Valor | Uso |
 |---|---|---|
-| `background.default` | `#0E0F13` | Fundo da aplicação |
-| `background.paper` / elevado | `#16171D` / `#1D1E26` | Cards, diálogos, sidebar |
-| `divider` | `rgba(255,255,255,.08)` | Bordas |
+| `background` | `#0B0C10` | Fundo, com manchas de luz animadas (blurple, violeta, azul) e uma grade sutil |
+| `glass.background` | `rgba(22,23,29,0.42)` + `blur(18px) saturate(140%)` | Cards, diálogos e menus. Sem suporte a `backdrop-filter`, vira `#16171D` sólido |
+| `glass.highlight` | `inset 0 1px 0 rgba(255,255,255,.07)` | Reflexo na borda superior do vidro |
+| `border` | `rgba(255,255,255,.08)` | Bordas |
 | `primary` | `#5865F2` (light `#7983F5`, dark `#4752C4`) | Ações, foco, destaques, glow |
+| `secondary` (violeta) | `#9B59F6` | Fim do gradiente da marca (`#5865F2 → #9B59F6`) |
 | `success` / `error` / `warning` | `#23A55A` / `#F23F43` / `#F0B232` | Alta/compra · queda/venda · avisos |
 | `text.primary` / `text.secondary` | `#F2F3F5` / `#A3A6B4` | Textos |
 | BTC | `#F7931A` | Apenas no ícone do bitcoin |
 
-- **Efeitos:** botão primário com gradiente `#5865F2 → #7983F5`, que no hover sobe 2 px com glow `0 8px 24px rgba(88,101,242,.45)` e no clique faz `scale(.98)`. Cards com borda que acende em blurple. Inputs com anel de foco blurple. Indicador deslizante no menu ativo (`layoutId` do Motion).
-- **Movimento:** transições de 150–250 ms, entrada escalonada dos cards e contador animado no saldo. Tudo é desativado com `prefers-reduced-motion`.
+- **Hover:**
+  - botão principal com gradiente, glow, elevação de 2 px e um brilho que atravessa o botão;
+  - cards de vidro que acendem a borda em blurple e sobem 3 px;
+  - **efeito de foco** (`FocusGroup`): o item sob o mouse ou o foco do teclado se destaca e os outros do grupo ficam foscos (opacidade, saturação e um leve desfoque). Só CSS (`:has`), sem estado no React;
+  - inputs com anel de foco blurple; ícones que crescem.
+- **Movimento:**
+  - manchas de luz se movendo devagar no fundo (só `transform`);
+  - entrada dos blocos em sequência (Motion, com 80 ms entre eles);
+  - indicador "ao vivo" pulsando.
+- **Acessibilidade:** quem ativa "reduzir movimento" no sistema não recebe animações (`MotionConfig reducedMotion="user"` + regra global no CSS); foco sempre visível; números tabulares.
 
 ## 9. Segurança
 
@@ -308,11 +343,13 @@ frontend/src/
 |---|---|
 | Roubo de token via XSS | JWT só em cookie httpOnly; o JavaScript do navegador nunca o lê |
 | CSRF | Cookie `SameSite=Lax`; mutações apenas via `POST` com JSON |
-| Força bruta no login | Até 10 senhas erradas **por e-mail** a cada 15 min (o BFF faz todos chegarem com o IP da Vercel, por isso a chave não é o IP); cadastro limitado a 30/h por IP |
+| Força bruta no login | Até 10 senhas erradas **por e-mail** a cada 15 min (o BFF faz todos chegarem com o IP da Vercel, por isso a chave não é o IP); cadastro limitado a 30/h por IP. Atrás do BFF esse limite vale para todos os cadastros somados, o que é aceitável para uma demonstração |
 | Enumeração de usuários | Login com mensagem genérica "E-mail ou senha inválidos" e tempo de resposta igual (compara um hash fictício quando o e-mail não existe) |
 | Senhas vazadas do banco | Hash bcrypt (custo 10); `passwordHash` com `select: false` |
 | Entrada maliciosa | Zod em todo body e query; `express.json({ limit: '10kb' })` |
 | Headers inseguros | helmet; `x-powered-by` desligado |
+| IP falsificado no `X-Forwarded-For` | `trust proxy` só em produção (atrás do proxy do Render); em desenvolvimento o header é ignorado |
+| Injeção de texto nos logs | `x-request-id` vindo do cliente só é aceito se for alfanumérico (até 64 caracteres); senão, a API gera um UUID |
 | Segredos | `.env` fora do git; `env.ts` valida na subida (`JWT_SECRET` com ≥ 32 caracteres) |
 | Vazamento em logs | `redact` do pino em `authorization`, `password` e cookies |
 
@@ -347,6 +384,20 @@ Limites que importam (verificados; ver seção 12):
 | D11 | Regras de negócio da seção 5 do PRD | Leitura literal (reinvestir o R$ residual na cotação original) | A leitura literal cria ou destrói BTC | Autor (aprovado na Fase 0) |
 | D12 | Swagger escrito à mão (`openapi.yaml`) | Gerado a partir dos schemas Zod | Mais simples de ler e manter neste tamanho de API | Autor (aprovado na Fase 0) |
 | D13 | Rate limit do login por e-mail (10 erros / 15 min) | Por IP repassado pelo BFF; por IP simples | Atrás do BFF o IP é sempre o da Vercel; repassar o IP permitiria falsificação. Contra: alguém pode bloquear a conta de outra pessoa por até 15 min | Autor |
+| D14 | `.env` carregado com `process.loadEnvFile()` nativo do Node | dotenv | Uma dependência a menos; o dotenv 18 imprime uma mensagem a cada inicialização. As variáveis do ambiente (Render) têm prioridade sobre o arquivo | Revisão geral |
+| D15 | Cotação pelo endpoint v4 documentado (`/api/v4/tickers`) | URL v3 citada no desafio (`/api/BTC/ticker/`) | A v3 não consta mais na doc oficial (legado); a v4 traz os mesmos `buy` e `sell` | Autor |
+| D16 | Compra e venda usam a cotação do cache (até 10 s) | Buscar cotação nova a cada operação | É a mesma cotação que o cliente vê no preview; respeita o limite de 1 req/s do Mercado Bitcoin; o extrato registra a cotação usada | Autor (aprovado na Fase 5) |
+| D17 | Posição sem investimentos não consulta a cotação | Sempre consultar | O dashboard de quem ainda não investiu continua funcionando mesmo com o Mercado Bitcoin fora | Autor (aprovado na Fase 5) |
+| D18 | Extrato responde `{ from, to, transactions }` | Lista simples de lançamentos | O front sabe qual período foi aplicado quando usa o padrão de 90 dias | Autor (aprovado na Fase 8) |
+| D19 | Um único índice `{ bucket }` único + TTL | Índice único em `bucket` + TTL em `createdAt` | Testado: o MongoDB aceita os dois no mesmo índice. Expurgo contado a partir do horário da cotação, inclusive nos pontos de backfill | Revisão técnica (Fase 8) |
+| D20 | Swagger público em produção | Só em desenvolvimento; com Basic Auth | Projeto de portfólio: o avaliador testa pelo navegador. A API já é pública, e as rotas exigem token e têm rate limit | Autor |
+| D21 | Fonte Plus Jakarta Sans (via `next/font`) | Inter; Geist; Sora | Gosto do autor: mais arredondada, com cara de fintech | Autor |
+| D22 | Glassmorphism com fundo animado | Sólido com borda sutil; gradientes vibrantes | Gosto do autor. Cuidado aplicado: vidro fosco o bastante para manter o contraste, e fallback sólido | Autor |
+| D23 | Só tema dark | Dark + light | Foco no estilo do autor; uma paleta só | Autor |
+| D24 | Animações intensas (efeito de foco, brilho nos botões, fundo animado) | Moderada; mínima | Gosto do autor. Só `transform`/`opacity`/`filter` e respeito a "reduzir movimento". O spotlight que seguia o mouse foi removido a pedido do autor (apagava as informações) | Autor |
+| D25 | Manter `cacheComponents` (e `partialPrefetching`) ligado, como o create-next-app 16.4 gera | Desligar | Estável no Next 16 e será o padrão obrigatório na próxima versão principal. Impacto: leituras de cookies ficam dentro de `<Suspense>` (casca estática + streaming) | Revisão técnica (Fase 10) |
+| D26 | BFF com allowlist exata (método + caminho) e checagem de `Origin` nos POST | Repassar tudo que vier em `/api/*` | Menor superfície de ataque: o navegador só alcança as 10 operações do admin; o `Origin` é uma segunda barreira contra CSRF | Revisão técnica (Fase 11) |
+| D27 | Logout e sessão expirada fazem recarga completa da página | Navegação interna (`router.push`) | Garante que o cache do React Query e as rotas mantidas pelo Cache Components não guardem dados do usuário anterior | Revisão técnica (Fase 11) |
 
 ## 12. Verificações de documentação oficial
 
@@ -374,12 +425,24 @@ Regra do projeto: antes de cada integração, consultar a fonte oficial atual e 
 | 06/10/2026 | npm 11: scripts de instalação (Fase 1) | Saída do `npm install` | O npm bloqueia o `postinstall` do esbuild até aprovação (`npm install-scripts approve`). O tsx e o Vitest funcionam sem ele (o binário vem do pacote opcional da plataforma) |
 | 06/10/2026 | express-rate-limit 8.7 (Fase 2) | [Configuração oficial](https://express-rate-limit.mintlify.app/reference/configuration) | Opção `limit` (antigo `max`), `skipSuccessfulRequests` (não conta status < 400), `keyGenerator` customizável, `standardHeaders: 'draft-8'`, `handler` próprio. Alerta da doc: configurar `trust proxy` corretamente |
 | 06/10/2026 | jsonwebtoken 9.0.3 e bcryptjs 3.0.3 (Fase 2) | Registro do npm | O bcryptjs 3 já traz os tipos; o jsonwebtoken usa `@types/jsonwebtoken`. O algoritmo é fixado em HS256 no `verify`, contra a troca do `alg` |
+| 06/10/2026 | SMTP do Brevo (Fase 3) | [Brevo: SMTP integration](https://developers.brevo.com/docs/smtp-integration) · [Node.js example](https://developers.brevo.com/docs/node-smtp-relay-example) | Host `smtp-relay.brevo.com`, porta 587 com `secure: false` (465 = TLS direto); autenticação com a **SMTP key**, não a API key; cuidado com espaços ao copiar a chave |
+| 06/10/2026 | Nodemailer 10 (Fase 3) | [nodemailer.com/smtp](https://nodemailer.com/smtp) | Opções `host`, `port`, `secure`, `auth`. Timeouts padrão longos (conexão 2 min, socket 10 min), por isso o projeto usa 10 s/10 s/20 s |
+| 06/10/2026 | Transações no Atlas M0 (Fase 3) | [Free cluster limits](https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/) · [Unsupported commands](https://www.mongodb.com/docs/atlas/unsupported-commands/) | O M0 é um replica set de 3 nós; `startTransaction`/`commitTransaction` não constam como limitados nem como não suportados. ⚠️ Confirmação prática pendente (credencial do Atlas) |
+| 06/10/2026 | Transações no Atlas M0: teste prático | Smoke test contra o cluster do autor | ✅ Confirmado: MongoDB 8.0.34; depósito em transação (`$inc` + lançamento) com commit bem-sucedido; dados do teste removidos |
+| 06/10/2026 | `process.loadEnvFile()` (revisão) | Teste prático no Node 24.20 | Não sobrescreve variáveis já definidas no ambiente; lança `ENOENT` se o arquivo não existir; não imprime nada |
+| 06/10/2026 | API v4 do Mercado Bitcoin (Fase 4) | Spec oficial: [api.mercadobitcoin.net/api/v4/docs](https://api.mercadobitcoin.net/api/v4/docs) (`swagger.yaml`) | `GET /tickers?symbols=BTC-BRL` devolve uma lista; `buy`, `sell` e `last` em **texto**. Limite: **1 req/s por endpoint** e 500 req/min no total. `GET /candles`: resoluções `1m, 15m, 1h, 3h, 1d, 1w, 1M` (não há 10m), parâmetros `symbol`, `resolution`, `to` (obrigatório), `from` e `countback`; resposta em arrays `t, o, h, l, c`. O campo `date` do ticker diz "nanoseconds", mas o exemplo e a resposta real estão em segundos, por isso a API usa a própria hora da consulta como `updatedAt`. A URL v3 do desafio não aparece na doc |
+| 06/10/2026 | node-cron 4 (Fase 8) | [README oficial](https://github.com/node-cron/node-cron) + tipos do pacote | `schedule(expr, fn, { name, timezone, noOverlap, ... })`; a tarefa inicia sozinha; `stop()`, `start()` e `destroy()`; expressão com 5 ou 6 campos (segundos opcionais) |
+| 06/10/2026 | `/candles` do Mercado Bitcoin: teste prático (Fase 8) | Chamadas reais a `api.mercadobitcoin.net/api/v4/candles` | `countback=1440` e `from`/`to` de 27 h funcionam (1.440 e 1.291 candles). **Só há candle nos minutos com negociação** (180 lacunas em 1.440 minutos) |
+| 06/10/2026 | Índice único + TTL no mesmo campo (Fase 8) | Teste prático no MongoDB 8 (memória) | `createIndex({ bucket: 1 }, { unique: true, expireAfterSeconds })` aceito; inserção duplicada recusada com o erro 11000 |
+| 07/10/2026 | swagger-ui-express 5 (Fase 9) | [README oficial](https://github.com/scottie1984/swagger-ui-express) | `swaggerUi.serve` + `swaggerUi.setup(doc, { customSiteTitle, swaggerOptions })`; YAML lido com o pacote `yaml`. Teste prático: `/docs` redireciona (301) para `/docs/` e a interface renderiza sem bloqueio do CSP padrão do helmet |
+| 07/10/2026 | Coleção Postman oficial com Newman 6 (Fase 9) | [desafio-postman.json](https://cdn.eduzzcdn.com/files/desafio-postman.json) + `npx newman@6 run` | 11 requisições, 0 falhas; todas as rotas reconhecidas. O login da coleção tem `"..."` como credenciais e precisa ser preenchido por quem a usa |
+| 07/10/2026 | MUI 9 + Next 16 App Router (Fase 10) | [mui.com: Next.js integration](https://mui.com/material-ui/integrations/nextjs/) + `exports` do pacote | `AppRouterCacheProvider` de `@mui/material-nextjs/v16-appRouter` (o pacote 9.4 já traz o `v16`); fonte por `next/font` com variável CSS; tema em arquivo `'use client'` |
+| 07/10/2026 | MUI 9: estilos por combinação de props (Fase 10) | Tipos do pacote (`styles/components.d.ts`) | A chave `containedPrimary` não existe mais. O caminho é `components.MuiButton.variants: [{ props: { variant, color }, style }]` |
+| 07/10/2026 | create-next-app 16.4 e Cache Components (Fase 10) | `create-next-app --help` · [nextjs.org: cacheComponents](https://nextjs.org/docs/app/api-reference/config/next-config-js/cacheComponents) | O template gera `cacheComponents: true` + `partialPrefetching: true`; a doc diz que ambos serão o padrão obrigatório na próxima versão principal (decisão D25) |
+| 07/10/2026 | `npm audit` do front (Fase 10) | `npm audit` / `npm audit --omit=dev` | **0** vulnerabilidades em produção. 5 "altas" só em ferramenta de lint (`braces`, via `eslint-config-next` → `fast-glob`), **sem versão corrigida**; o `--force` faria downgrade para o `eslint-config-next` 14. Risco aceito: afeta só o lint local |
+| 07/10/2026 | `proxy.ts` do Next 16 (Fase 11) | [nextjs.org: proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy) | Em `src/`, exportando `proxy(request)` e `config.matcher`; roda em Node.js; `request.cookies.has()`; `NextResponse.redirect`. A doc recomenda não depender só do proxy para autenticação |
+| 07/10/2026 | `cookies()` e Route Handlers no Next 16 (Fase 11) | [nextjs.org: cookies](https://nextjs.org/docs/app/api-reference/functions/cookies) · [route.js](https://nextjs.org/docs/app/api-reference/file-conventions/route) | `cookies()` é assíncrono; `set`/`delete` só em Route Handlers e Server Functions; opções `httpOnly`, `secure`, `sameSite`, `maxAge`, `path`. `params` do catch-all é uma Promise (`{ path: string[] }`); `GET` é dinâmico por padrão |
 
 **Pendentes**, a conferir antes da fase indicada:
-- Doc oficial do ticker e dos candles do Mercado Bitcoin, com limites de requisição (Fases 4 e 8).
-- Transações no Atlas M0 e configuração SMTP do Brevo com Nodemailer (Fase 3).
-- APIs do node-cron 4 (Fase 8) e do swagger-ui-express (Fase 9).
-- Transações no Atlas M0 de verdade: o teste da Fase 1 rodou num replica set local em memória (Fase 3).
-- Integração MUI 9 + Next 16 (Fase 10) e cookies em Route Handlers do Next 16 (Fase 11).
 - MUI X Charts e Date Pickers (Fases 13 e 15).
 - Configuração de deploy no Render e na Vercel (Fase 17).

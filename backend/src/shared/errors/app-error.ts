@@ -13,8 +13,10 @@ export class AppError extends Error {
     public readonly statusCode: number,
     message: string,
     public readonly details?: ErrorDetail[],
+    // `cause`: o erro original (ex.: falha de rede), útil no log.
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = new.target.name;
   }
 }
@@ -56,8 +58,9 @@ export class TooManyRequestsError extends AppError {
   }
 }
 
+/** Uma dependência externa (ex.: Mercado Bitcoin) falhou. */
 export class ServiceUnavailableError extends AppError {
-  constructor(message: string) {
-    super(503, message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(503, message, undefined, options);
   }
 }

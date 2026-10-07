@@ -1,9 +1,16 @@
-import 'dotenv/config';
 import { createApp } from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { loadEnv } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { createContainer } from './container.js';
+
+// Carrega o backend/.env, se existir (recurso nativo do Node, sem biblioteca).
+// Variáveis já definidas no ambiente (ex.: painel do Render) têm prioridade sobre o arquivo.
+try {
+  process.loadEnvFile();
+} catch (error) {
+  if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+}
 
 const env = loadEnv();
 const logger = createLogger(env);
@@ -22,17 +29,37 @@ try {
 const container = createContainer({
   jwtSecret: env.JWT_SECRET,
   jwtExpiresIn: env.JWT_EXPIRES_IN,
+  logger,
+  quote: { apiUrl: env.QUOTE_API_URL, cacheTtlSeconds: env.QUOTE_CACHE_TTL_SECONDS },
+  mail: {
+    from: env.MAIL_FROM,
+    smtp:
+      env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS
+        ? { host: env.SMTP_HOST, port: env.SMTP_PORT, user: env.SMTP_USER, pass: env.SMTP_PASS }
+        : undefined,
+  },
 });
-const app = createApp({ container, logger, corsOrigins: env.CORS_ORIGIN });
+const app = createApp({
+  container,
+  logger,
+  corsOrigins: env.CORS_ORIGIN,
+  // Em produção a API fica atrás do proxy do Render; localmente não há proxy.
+  trustProxy: env.NODE_ENV === 'production',
+});
 
 const server = app.listen(env.PORT, () => {
   logger.info(`API ouvindo em http://localhost:${env.PORT}`);
 });
 
-// Encerramento gracioso: para de aceitar conexões e fecha o banco antes de sair.
+// Coleta da cotação a cada 10 min + preenchimento das lacunas das últimas 24 h.
+void container.historyJob.start();
+
+// Encerramento gracioso: para de aceitar conexões, espera as requisições em andamento
+// terminarem e só então fecha o banco.
 async function shutdown(signal: string): Promise<void> {
   logger.info(`${signal} recebido, encerrando...`);
-  server.close();
+  await container.historyJob.stop();
+  await new Promise<void>((resolve) => server.close(() => resolve()));
   await disconnectDatabase();
   process.exit(0);
 }

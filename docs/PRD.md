@@ -102,7 +102,7 @@ Interpretações dos pontos ambíguos do desafio, aprovadas pelo autor:
 
 - **Custo zero:** Render free (API), Vercel Hobby (front, uso não comercial), MongoDB Atlas M0 (0,5 GB) e Brevo free (300 e-mails/dia).
 - **Integrações obrigatórias:**
-  - cotação pelo [Mercado Bitcoin](https://www.mercadobitcoin.net/api/BTC/ticker/);
+  - cotação pelo Mercado Bitcoin: o desafio cita a URL v3 (`/api/BTC/ticker/`); a implementação usa o endpoint v4 documentado ([`/api/v4/tickers`](https://api.mercadobitcoin.net/api/v4/docs)), que traz os mesmos dados;
   - e-mail por um provedor com plano gratuito.
 - **Contrato da API** compatível com a coleção Postman oficial do desafio.
 

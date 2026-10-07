@@ -26,6 +26,13 @@ export interface UserRepository {
   create(data: CreateUserData): Promise<User>;
   findById(id: string): Promise<User | null>;
   findByEmailWithPassword(email: string): Promise<UserWithPassword | null>;
+  /** Soma (ou subtrai, se negativo) do saldo de forma atômica. Devolve o usuário atualizado. */
+  incrementBalance(id: string, deltaCents: number): Promise<User | null>;
+  /**
+   * Debita o saldo SOMENTE se houver saldo suficiente, numa única operação atômica.
+   * Devolve `null` se o saldo não bastar (ou se o usuário não existir).
+   */
+  debitBalance(id: string, amountCents: number): Promise<User | null>;
 }
 
 type StoredUser = UserDocument & { _id: Types.ObjectId };
@@ -60,6 +67,29 @@ export class MongooseUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     if (!isValidObjectId(id)) return null;
     const document = await UserModel.findById(id).lean<StoredUser>();
+    return document ? toUser(document) : null;
+  }
+
+  async incrementBalance(id: string, deltaCents: number): Promise<User | null> {
+    if (!isValidObjectId(id)) return null;
+    // `$inc` é atômico no MongoDB: dois depósitos simultâneos nunca "se perdem".
+    const document = await UserModel.findByIdAndUpdate(
+      id,
+      { $inc: { balanceCents: deltaCents } },
+      { returnDocument: 'after' },
+    ).lean<StoredUser>();
+    return document ? toUser(document) : null;
+  }
+
+  async debitBalance(id: string, amountCents: number): Promise<User | null> {
+    if (!isValidObjectId(id)) return null;
+    // A condição `balanceCents >= valor` e o débito acontecem juntos no banco:
+    // duas compras simultâneas nunca deixam o saldo negativo.
+    const document = await UserModel.findOneAndUpdate(
+      { _id: id, balanceCents: { $gte: amountCents } },
+      { $inc: { balanceCents: -amountCents } },
+      { returnDocument: 'after' },
+    ).lean<StoredUser>();
     return document ? toUser(document) : null;
   }
 

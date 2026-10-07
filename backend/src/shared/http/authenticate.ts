@@ -20,7 +20,7 @@ export function createAuthenticate(tokens: Pick<TokenService, 'verify'>): Reques
 }
 
 /** Para controllers de rotas protegidas: devolve o id do usuário autenticado. */
-export function getUserId(req: Request): string {
+export function getUserId(req: Pick<Request, 'userId'>): string {
   if (!req.userId) {
     throw new UnauthorizedError();
   }

@@ -14,6 +14,7 @@ npm run dev          # tsx watch
 npm run lint         # ESLint
 npm run typecheck    # tsc --noEmit
 npm test             # Vitest (unit + integração com Mongo em memória)
+npm run test:coverage
 npm run build && npm start
 
 # Front (frontend/) — porta 3000
@@ -38,6 +39,10 @@ docker compose up --build
 - Datas de negócio no fuso `America/Sao_Paulo` (`shared/dates.ts`).
 - Toda entrada é validada com Zod; operações financeiras rodam em transação (`TransactionRunner`).
 - Imports relativos com extensão `.js` na API (ESM `nodenext`).
+- Front:
+  - visual dark + vidro + blurple, só com os tokens de `frontend/src/theme/tokens.ts`;
+  - **todo grupo de cards ou botões usa `FocusGroup` + `className={FOCUS_ITEM}`** (o item em foco se destaca e os demais ficam foscos);
+  - nada de spotlight ou brilho seguindo o mouse (removido a pedido do autor).
 - Mensagens de commit no padrão Conventional Commits (`feat(api): ...`, `test: ...`, `docs: ...`).
 
 ## Regras de trabalho (definidas pelo autor)

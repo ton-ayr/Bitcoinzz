@@ -31,6 +31,30 @@ describe('App', () => {
     });
   });
 
+  describe('x-request-id', () => {
+    it('reaproveita um id válido enviado pelo cliente', async () => {
+      const response = await request(createTestApp())
+        .get('/health')
+        .set('x-request-id', 'abc-123_XYZ');
+      expect(response.headers['x-request-id']).toBe('abc-123_XYZ');
+    });
+
+    it('descarta um id suspeito (evita injeção de texto nos logs)', async () => {
+      const response = await request(createTestApp())
+        .get('/health')
+        .set('x-request-id', 'linha falsa {"level":60}');
+      expect(response.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/); // UUID novo
+    });
+  });
+
+  it('corpo acima de 10 kb → 413', async () => {
+    const response = await request(createTestApp())
+      .post('/login')
+      .send({ email: 'a@a.com', password: 'x'.repeat(11 * 1024) });
+    expect(response.status).toBe(413);
+    expect(response.body.message).toBe('Corpo da requisição muito grande');
+  });
+
   it('rota inexistente → 404 no formato padrão', async () => {
     const response = await request(createTestApp()).get('/nao-existe');
     expect(response.status).toBe(404);

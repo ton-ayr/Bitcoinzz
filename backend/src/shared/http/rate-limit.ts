@@ -28,6 +28,24 @@ export function createLoginRateLimiter() {
   });
 }
 
+/**
+ * Rotas logadas: 300 requisições por usuário a cada 15 min.
+ * Folga suficiente para o dashboard, que atualiza a cotação a cada 15 s (~135 req / 15 min).
+ * Precisa vir DEPOIS do `authenticate`, que preenche `req.userId`.
+ */
+export function createUserRateLimiter() {
+  return rateLimit({
+    windowMs: FIFTEEN_MINUTES,
+    limit: 300,
+    keyGenerator: (req: Request) => `user:${String(req.userId)}`,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (_req, _res, next) => {
+      next(new TooManyRequestsError('Muitas requisições. Aguarde alguns minutos.'));
+    },
+  });
+}
+
 /** Cadastro: proteção contra criação de contas em massa (30 por hora por IP). */
 export function createRegisterRateLimiter() {
   return rateLimit({

@@ -11,17 +11,17 @@
 | # | Fase | Status |
 |---|---|---|
 | 0 | Documentação | ✅ |
-| 1 | Fundação da API em TypeScript | 🟨 |
-| 2 | Cadastro e login | 🟨 |
-| 3 | Depósito, saldo, perfil e e-mails | ⬜ |
-| 4 | Cotação do Mercado Bitcoin | ⬜ |
-| 5 | Compra e posição | ⬜ |
-| 6 | Venda FIFO com reinvestimento | ⬜ |
-| 7 | Extrato e volume | ⬜ |
-| 8 | Histórico (job, TTL e backfill) | ⬜ |
-| 9 | Swagger e acabamento da API | ⬜ |
-| 10 | Fundação do front (Next.js + tema) | ⬜ |
-| 11 | BFF, sessão e proteção de rotas | ⬜ |
+| 1 | Fundação da API em TypeScript | ✅ |
+| 2 | Cadastro e login | ✅ |
+| 3 | Depósito, saldo, perfil e e-mails | ✅ |
+| 4 | Cotação do Mercado Bitcoin | 🟨 |
+| 5 | Compra e posição | ✅ |
+| 6 | Venda FIFO com reinvestimento | ✅ |
+| 7 | Extrato e volume | ✅ |
+| 8 | Histórico (job, TTL e backfill) | ✅ |
+| 9 | Swagger e acabamento da API | ✅ |
+| 10 | Fundação do front (Next.js + tema) | ✅ |
+| 11 | BFF, sessão e proteção de rotas | 🟨 |
 | 12 | Login e cadastro | ⬜ |
 | 13 | Shell e dashboard | ⬜ |
 | 14 | Depósito e compra com preview | ⬜ |
@@ -30,6 +30,17 @@
 | 17 | README e deploy | ⬜ |
 
 **Total:** a Fase 0 (documentação) e mais **17 fases de implementação**.
+
+## Pendências do autor
+
+| # | Pendência | Bloqueia |
+|---|---|---|
+| ~~A1~~ | ✅ `MONGODB_URI` corrigida; API testada contra o Atlas (MongoDB 8.0.34, database `carteira`) | – |
+| A2 | ✅ Decidido: o Render fica **fora do ar até a Fase 17**. Opcional: desligar o auto-deploy no painel, para cada push não gerar um build com falha | – |
+| A3 | (Opcional, quando quiser) Conta grátis no Brevo + remetente verificado + SMTP key no `.env` | E-mail real (até lá, sai no console) |
+| A4 | Commit consolidado das Fases 3 a 7 e da revisão geral (o autor prefere commits maiores) | – |
+| ~~A5~~ | ✅ `PORT=3333` no `backend/.env` | – |
+| A6 | (Opcional) Apagar o `package-lock.json` solto em `C:/Users/ayrto` (o build do Next avisa que o ignora) e, se quiser, desligar a telemetria anônima do Next: `npx next telemetry disable` | – |
 
 ---
 
@@ -50,7 +61,7 @@
 - [x] Arquivos `.js` da v1 removidos de `backend/`; `.env.example` atualizado.
 - [x] **Testes:** `money` (conversões, arredondamento, limites do BigInt) e `dates` (início do dia em SP, slots de 10 min). Também `env` e o app (health, 404, JSON inválido, validação, erros): 47 testes.
 - [x] **Aceite:** `lint`, `typecheck`, `test` e `build` passam. A API sobe contra um MongoDB em memória: `/health` 200, rota inexistente 404 no formato padrão, transação executada.
-- [ ] **Autor:** corrigir usuário e senha da `MONGODB_URI` no `backend/.env`. O Atlas respondeu `bad auth : Authentication failed`.
+- [x] **Autor:** corrigir a `MONGODB_URI` no `backend/.env` (resolvido na revisão geral).
 
 ## Fase 2: Cadastro e login
 - [x] Módulo `users` (model + repository) e módulo `auth` (schemas, service, controller, routes, `PasswordHasher`, `TokenService`).
@@ -62,72 +73,104 @@
 - [x] **Aceite:** testes passam; a resposta nunca contém `passwordHash`; smoke test no servidor real (cadastro → login → erro com header `RateLimit`).
 
 ## Fase 3: Depósito, saldo, perfil e e-mails
-- [ ] Verificar e registrar: transações no Atlas M0 e SMTP do Brevo com Nodemailer.
-- [ ] Módulo `account`: `GET /account`, `POST /account/deposit` (transação: `$inc` + lançamento DEPOSIT) e `GET /account/balance`.
-- [ ] Módulo `notifications`: interface `Mailer`, `SmtpMailer`, `ConsoleMailer` e `NotificationService`, que envia sem `await` e loga as falhas.
-- [ ] **Testes:** limites do valor do depósito, saldo acumulado, lançamento criado, e-mail chamado sem bloquear a resposta (fake), e falha de e-mail que não quebra o depósito.
-- [ ] **Aceite:** depósito real no Atlas com o e-mail recebido via Brevo, ou o log no console em dev.
+- [x] Verificado e registrado: SMTP do Brevo com Nodemailer e transações no Atlas M0 (não listadas como "não suportadas"; o M0 é um replica set de 3 nós).
+- [x] Confirmação prática da transação no Atlas M0: depósito com transação executado com sucesso (dados do teste removidos depois).
+- [x] Módulo `account`: `GET /account`, `POST /account/deposit` (transação: `$inc` + lançamento DEPOSIT) e `GET /account/balance`.
+- [x] Módulo `notifications`: interface `Mailer`, `SmtpMailer` (timeouts curtos), `ConsoleMailer`, `createMailer` e `NotificationService` (envia sem `await` e loga falhas). Template HTML com o tema blurple e nome escapado contra injeção de HTML.
+- [x] Módulo `transactions` (model + `create`) e limite de 300 req / 15 min por usuário nas rotas logadas.
+- [x] **Testes:** limites do valor (0, negativo, 3 casas, acima de R$ 1 milhão, texto), saldo acumulado sem erro de ponto flutuante (87,5 + 0,1 = 87,6), lançamentos DEPOSIT, e-mail com o valor, envio que não bloqueia, falha de e-mail que não quebra, **rollback** (se o extrato falhar, o saldo não muda e nenhum e-mail sai), 401 sem token. 100 testes no total.
+- [x] **Aceite:** depósito real no Atlas (201, saldo e lançamento DEPOSIT corretos). E-mail validado no console; o envio real pelo Brevo fica para quando o autor criar a conta (pendência A3, opcional).
 
 ## Fase 4: Cotação do Mercado Bitcoin
-- [ ] Verificar e registrar: doc oficial do ticker e os limites de requisição.
-- [ ] `MercadoBitcoinClient` (fetch com timeout de 5 s e Zod na resposta) e `QuoteService` (cache de 10 s).
-- [ ] `GET /btc/price` → `{ buy, sell, updatedAt }`.
-- [ ] **Testes:** parse de strings decimais para centavos, resposta inválida, cache reaproveitado dentro de 10 s e renovado depois, timeout ou erro → 503.
-- [ ] **Aceite:** testes passam; a rota responde com a cotação real.
+- [x] Verificado e registrado: spec OpenAPI oficial da API v4 (`/tickers`, `/candles`, limite de 1 req/s por endpoint e 500/min no total). A URL v3 do desafio não consta mais na doc.
+- [x] Decisão do autor: usar o endpoint **v4 documentado** (`/api/v4/tickers?symbols=BTC-BRL`).
+- [x] `MercadoBitcoinClient` (fetch com timeout de 5 s; resposta validada com Zod; preços em texto convertidos para centavos sem ponto flutuante) e `QuoteService` (cache de 10 s; chamadas simultâneas compartilham uma requisição; erro não fica em cache).
+- [x] `GET /btc/price` → `{ buy, sell, updatedAt }` (exige login).
+- [x] Erros 5xx "esperados" (ex.: 503 da cotação) agora também são logados, com a causa original.
+- [x] **Testes:** conversão do formato real da resposta; 503 para HTTP 500/429, HTML, lista vazia, outro par, preço inválido ou zero e falha de rede; cache dentro e fora dos 10 s; chamadas simultâneas; erro não cacheado; rota 401/200/503. 119 testes no total.
+- [x] **Aceite:** cotação real obtida pela rota (198 ms na primeira chamada; 10 ms na segunda, vinda do cache).
 
 ## Fase 5: Compra e posição
-- [ ] Módulo `investments`: model, repository, `PurchaseService`, `PositionService`, controller e routes.
-- [ ] `POST /btc/purchase`: débito atômico com condição de saldo, Investment, lançamento PURCHASE e e-mail.
-- [ ] `GET /btc`: lista dos investimentos OPEN com variação % e valor atual, e um resumo com os totais.
-- [ ] **Testes unitários:** saldo insuficiente (422), valor que daria 0 sats (422), arredondamento para baixo dos sats, cálculo da variação e do valor atual.
-- [ ] **Teste de integração:** compra → posição → saldo, com a cotação fake.
-- [ ] **Aceite:** testes passam; duas compras simultâneas não deixam o saldo negativo.
+- [x] Módulo `investments`: model (índice `userId + status + purchasedAt`), repository, `PurchaseService`, `PositionService`, controller e routes.
+- [x] `POST /btc/purchase`: converte pela cotação de **venda**, com sats arredondados para baixo. Numa transação: débito atômico condicionado ao saldo (`findOneAndUpdate` com `balanceCents >= valor`), investimento e lançamento PURCHASE. Depois, e-mail com o R$ investido e o BTC comprado.
+- [x] `GET /btc`: investimentos OPEN com data, valor investido, cotação na compra, variação % e valor bruto atual (pela cotação de **compra**), mais um resumo. Sem investimentos, não consulta a cotação.
+- [x] Schema de valor em R$ compartilhado (`shared/validation.ts`), com teto técnico de R$ 100 bilhões.
+- [x] **Testes unitários:** cotação de venda, arredondamento (R$ 100 a R$ 300.000 = 33.333 sats), saldo inteiro, 422 com o saldo disponível, valor que não compra 1 sat, 503 sem mexer no saldo, e-mail; posição com o exemplo do PRD (+25%), variação negativa, resumo de vários investimentos, só OPEN do próprio usuário, posição vazia sem chamar a cotação.
+- [x] **Testes de integração:** fluxo depósito → compra (exemplo Postman `amount: 25`) → posição → saldo → extrato; 400/401/422; **5 compras simultâneas com saldo para 1 → exatamente 1 aprovada e saldo nunca negativo** (repetido 5×, estável); rollback se gravar o investimento falhar. 143 testes no total.
+- [x] **Aceite:** fluxo completo com o Atlas e a cotação reais (dados de teste removidos).
 
 ## Fase 6: Venda FIFO com reinvestimento
-- [ ] `SaleService` e `POST /btc/sell` (valor em R$).
-- [ ] **Testes unitários:**
-  - venda total de 1 investimento;
-  - venda que passa por vários investimentos na ordem FIFO;
-  - venda parcial que gera REINVESTMENT com a cotação e a data originais, sem perder nem criar BTC;
-  - parcial que zera (vira venda total);
-  - pedido maior que a posição (422);
-  - soma creditada igual ao valor pedido.
-- [ ] **Teste de integração:** o extrato contém SALE + REINVESTMENT e o e-mail informa o BTC vendido e o R$ resgatado.
-- [ ] **Aceite:** o exemplo da seção 5 do PRD reproduzido num teste com os mesmos números.
+- [x] `SaleService` e `POST /btc/sell` (valor em R$, cotação de **compra**).
+  - Separação "planejar e depois gravar": `planSale()` só calcula; a gravação acontece numa transação.
+  - Investimentos lidos **dentro** da transação: vendas simultâneas são refeitas pelo MongoDB com os dados novos.
+  - Parcial: vende `ceil(restante / preço)` sats, encerra o investimento e cria o REINVESTMENT com a sobra, mantendo a cotação **e a data** originais (o lugar na fila FIFO). Se o arredondamento consumir tudo, não há reinvestimento.
+  - Resposta com `reinvestment: null` quando não houve reinvestimento (formato estável para o front).
+- [x] **Testes unitários:**
+  - exemplo do PRD com os mesmos números (R$ 600 → 0,0012 BTC vendido, 0,0008 reinvestido a R$ 400.000, R$ 320);
+  - venda exata sem reinvestimento;
+  - FIFO pela data de compra (não pela ordem de cadastro);
+  - 6 valores de borda provando **crédito = valor pedido** e **BTC conservado**;
+  - arredondamento que consome tudo;
+  - 422 acima da posição (com o máximo disponível) e sem investimentos;
+  - outros usuários intocados; 503; e-mail.
+- [x] **Testes de integração:** venda parcial refletida na posição (cotação e data originais), no saldo e no extrato (DEPOSIT → PURCHASE → SALE → REINVESTMENT); venda total; 400/401/422; **2 vendas simultâneas que somadas excedem a posição → uma 201 e uma 422** (repetido 5×, estável); rollback se o extrato falhar. 165 testes no total.
+- [x] **Aceite:** exemplo do PRD reproduzido em teste; fluxo real no Atlas com a cotação real (BTC conservado: 0,00070225 vendido + 0,00117040 reinvestido = 0,00187265 comprado).
 
 ## Fase 7: Extrato e volume
-- [ ] Módulo `transactions`: `GET /extract` (padrão de 90 dias, `from`/`to`, máximo de 366 dias) e `GET /volume`.
-- [ ] **Testes:** intervalo padrão, `from > to` (400), intervalo grande demais (400), filtro só do usuário logado, volume do dia no fuso de SP que ignora REINVESTMENT e outros dias.
-- [ ] **Aceite:** testes passam.
+- [x] `GET /extract?from&to`: padrão dos últimos 90 dias; só `from` → até hoje; só `to` → os 90 dias anteriores; datas em AAAA-MM-DD no horário de São Paulo, incluindo o dia inteiro das duas pontas; máximo de 366 dias. Resposta `{ from, to, transactions }`, do mais recente para o mais antigo, com tipo, valor, BTC e cotação (`null` em depósitos).
+- [x] `GET /volume`: BTC comprado e vendido **na plataforma** no dia corrente (SP), via aggregate; reinvestimentos não entram.
+- [x] **Testes unitários:** período padrão e customizado, só `from`, só `to`, `from > to`, limite de 366 dias; volume com bordas de meia-noite em SP, ignorando REINVESTMENT e o dia anterior.
+- [x] **Testes de integração:** extrato após depósito → compra → venda (4 lançamentos na ordem certa); lançamento de 100 dias atrás fora do padrão e dentro do intervalo customizado; isolamento entre clientes; 4 casos de 400; volume somando dois clientes e ignorando reinvestimento e compra de ontem. 183 testes no total.
+- [x] **Aceite:** extrato e volume reais no Atlas; data inválida responde 400 com mensagem por campo.
 
 ## Fase 8: Histórico (job, TTL e backfill)
-- [ ] Verificar e registrar: doc do node-cron 4 e dos candles do Mercado Bitcoin.
-- [ ] Model `PriceSnapshot` (índice único em `bucket` e TTL de 90 dias em `createdAt`).
-- [ ] `HistoryJob` (a cada 10 min e no boot), `BackfillService` (só os slots que faltam nas últimas 24 h) e `GET /history`.
-- [ ] **Testes:** cálculo do `bucket`, upsert repetido sem duplicar, backfill que preenche apenas as lacunas, resposta limitada a 24 h e em ordem.
-- [ ] **Aceite:** testes passam; com a API rodando, um ponto novo aparece a cada 10 min.
+- [x] Verificado e registrado: API do node-cron 4; teste prático do `/candles` (só há candle nos minutos com negociação; `from`/`to` de 27 h funciona); índice único + TTL no mesmo campo aceito pelo MongoDB.
+- [x] Model `PriceSnapshot` com **um índice** `{ bucket }` único **e** TTL de 90 dias: sem duplicar slots e expurgo automático contado a partir do horário da cotação.
+- [x] `HistoryService`:
+  - `collectCurrent`: grava o slot atual com a cotação de compra/venda; idempotente com `$setOnInsert` + upsert;
+  - `backfillMissing`: preenche só os slots vazios das últimas 24 h com o último candle fechado antes de cada horário (`source: BACKFILL`, compra = venda), numa única chamada à API de candles;
+  - `getLast24h`.
+- [x] `HistoryJob`: `node-cron` `*/10 * * * *` (fuso de SP, `noOverlap`); na subida, coleta e preenche lacunas; erros só vão para o log. O `server.ts` inicia o job e o encerra no shutdown.
+- [x] `GET /history` → `[{ timestamp, buy, sell, source }]`.
+- [x] **Testes:** coleta e idempotência; backfill só das lacunas, com a regra "candle que fechou antes do horário" (o candle que começa no próprio horário não vale); sem lacunas → sem chamada externa; slot atual fora do backfill; slots sem negociação anterior ficam vazios; falhas; janela de 24 h; job (agenda, subida, disparos, erros no log, stop); candles no client; integração com índice único + TTL e **5 gravações simultâneas do mesmo slot → 1 registro**. 202 testes no total.
+- [x] **Aceite:** com as APIs reais do Mercado Bitcoin, a subida gerou **144 pontos** (143 do backfill + 1 do ticker), todos em múltiplos de 10 minutos.
 
 ## Fase 9: Swagger e acabamento da API
-- [ ] Verificar e registrar: doc do swagger-ui-express.
-- [ ] `docs/openapi.yaml` com todas as rotas, schemas, exemplos e bearer auth; `GET /docs` e `GET /`.
-- [ ] Graceful shutdown (server, cron e Mongo); revisão de status codes e mensagens.
-- [ ] **Aceite:** a coleção Postman oficial roda contra `localhost:3333`; o Swagger permite testar com "Authorize".
+- [x] Verificado e registrado: README do swagger-ui-express 5 (YAML via pacote `yaml`), validador `@apidevtools/swagger-parser` e Newman 6.
+- [x] Decisão do autor: **Swagger público em produção**.
+- [x] `backend/docs/openapi.yaml` (OpenAPI 3.0.3, design-first): 14 operações em 4 grupos, schemas, exemplos reais, erros padronizados e `bearerAuth`. Servidor padrão = "este servidor", então funciona igual no local e no Render.
+- [x] `GET /docs` (Swagger UI, com o token preservado ao recarregar), `GET /docs/openapi.json` e `GET /`.
+- [x] Graceful shutdown completo (job do histórico, servidor e Mongo).
+- [x] Revisão de status codes: 200 leituras; 201 criação (cadastro, depósito, compra, venda); 400 validação; 401 autenticação; 409 e-mail duplicado; 413 corpo grande; 422 regra de negócio; 429 rate limit; 503 cotação indisponível.
+- [x] **Testes:** spec válida; lista das 14 operações; **teste de contrato**: cada rota documentada existe e a exigência de login bate com a doc; `GET /`; Swagger UI e spec servidos. 220 testes no total.
+- [x] **Aceite:** coleção Postman oficial executada com o Newman contra a API local: 11 requisições, 0 falhas, todas as rotas reconhecidas. As únicas respostas não-2xx vêm dos dados da própria coleção (venda de R$ 30 após compra de R$ 25 → 422; login com `"..."` → 400). Swagger conferido no navegador (headless), sem bloqueio do CSP do helmet.
 
 ## Fase 10: Fundação do front
-- [ ] Verificar e registrar: integração MUI 9 + Next 16 (App Router).
-- [ ] Remover o `frontend/` da v1 e criar o app Next 16 (TS, App Router, `src/`, ESLint, Vitest).
-- [ ] `theme/` com os tokens e overrides da ARQUITETURA 8.4; Providers (MUI, Query, Date Pickers, Toaster, MotionConfig).
-- [ ] `lib/format.ts` (R$, ₿, %, datas em pt-BR) e `lib/http.ts` (`ApiError`).
-- [ ] **Testes:** `format.ts`.
-- [ ] **Aceite:** `npm run dev` mostra uma página com o tema dark/blurple; lint, typecheck e testes passam.
+- [x] Verificado e registrado: integração MUI 9 + Next 16 (`v16-appRouter`), opções do create-next-app 16.4, Cache Components e `npm audit`.
+- [x] Rodada de perguntas visuais (autor): Plus Jakarta Sans, glassmorphism, só dark, animações intensas (D21–D24).
+- [x] `frontend/` da v1 removido; app Next 16.4 criado (TS, App Router, `src/`, ESLint, sem Tailwind), TS 6.0 e tipos do Node 24 alinhados com a API, `output: 'standalone'`, Cache Components mantido (D25).
+- [x] `theme/`: tokens (cores, vidro, gradientes, glow) e tema MUI com overrides (Card/Paper/Dialog de vidro, botão com gradiente + glow + brilho, inputs, chips, tabela, menu, tooltip, scrollbar, foco e reduzir movimento).
+- [x] Providers: AppRouterCacheProvider, ThemeProvider, CssBaseline, QueryClientProvider, MotionConfig e Toaster (sonner). O LocalizationProvider de datas entra na Fase 15, com os Date Pickers.
+- [x] Componentes: `AnimatedBackground` e `FocusGroup` (item em foco se destaca e os demais ficam foscos; o spotlight que seguia o mouse foi removido a pedido do autor); favicon `app/icon.svg`.
+- [x] `lib/format.ts` (R$, ₿, %, data/hora em SP; datas puras sem o erro de "voltar um dia") e `lib/http.ts` (`ApiError` com mensagens por campo).
+- [x] **Testes:** formatação (incluindo fuso e data pura) e leitura de erros da API: 8 testes.
+- [x] **Aceite:** página **provisória** de prévia do design system, conferida em prints (desktop, celular e hover) com o build de produção; lint, typecheck, testes e Prettier ok.
 
 ## Fase 11: BFF, sessão e proteção de rotas
-- [ ] Verificar e registrar: cookies em Route Handlers e `proxy.ts` no Next 16.
-- [ ] `api/auth/login`, `api/auth/register` (login automático), `api/auth/logout` e `api/[...path]` com allowlist.
-- [ ] Cookie httpOnly de 8 h; 401 da API apaga o cookie; timeout longo para a API "acordando".
-- [ ] `proxy.ts` redireciona conforme o cookie.
-- [ ] **Testes:** allowlist (bloqueia rotas fora dela), montagem do header `Authorization`, tratamento de 401.
-- [ ] **Aceite:** sem cookie, `/dashboard` vai para `/login`.
+- [x] Verificado e registrado: `proxy.ts`, `cookies()` e Route Handlers no Next 16.
+- [x] `server/bff.ts` (lógica pura e testada): allowlist exata, repasse com timeout de 90 s (504/503 com mensagem), validade do cookie lida do JWT e checagem de `Origin` (D26). `server/session.ts` (`server-only`): cookie `bitcoinzz_session` httpOnly.
+- [x] Route Handlers: `api/auth/login`, `api/auth/register` (com login automático), `api/auth/logout`, `api/health` (acordar a API) e `api/[...path]` (exige sessão; 401 da API apaga o cookie).
+- [x] `proxy.ts` + `lib/access.ts` (`resolveAccess`, `safeNextPath` contra open redirect).
+- [x] Cliente: `lib/api-client.ts` (401 → login com recarga completa, D27) e `serverWake` + `ServerWakeBanner` ("Acordando o servidor…" após 2,5 s).
+- [x] Prévia do design movida para `/design` (só em desenvolvimento; 404 em produção). Login, cadastro e dashboard provisórios, substituídos nas Fases 12 e 13.
+- [x] **Testes:** allowlist (permitidas e bloqueadas), repasse (Bearer, query, JSON, erros da API, 504, 503), validade do cookie, Origin, regras de acesso e o aviso de lentidão com timers simulados. 52 testes no front.
+- [x] **Aceite:** teste ponta a ponta com a API e o front em produção, **19 cenários**:
+  - redirecionamentos;
+  - cookie com flags corretas e token fora do corpo;
+  - perfil, depósito, cotação e extrato pelo BFF;
+  - allowlist (404), CSRF (403), token adulterado (401 + cookie apagado), logout e login com e sem erro.
+
+  O aviso de "acordando" foi conferido em print com uma API lenta simulada.
 
 ## Fase 12: Login e cadastro
 - [ ] Layout `(auth)` com hero e brilho blurple animado.
@@ -178,4 +221,19 @@
 | 06/10/2026 | 0 | Documentos aprovados pelo autor |
 | 06/10/2026 | 1 | Fundação da API concluída (47 testes); aguardando revisão. Login no Atlas falhou por credencial |
 | 06/10/2026 | 2 | Autor pediu para seguir; commits e acesso ao Atlas ficam para depois. Decidido rate limit por e-mail |
-| 06/10/2026 | 2 | Cadastro e login concluídos (74 testes); aguardando revisão |
+| 06/10/2026 | 2 | Cadastro e login concluídos (74 testes); aprovados e commitados pelo autor |
+| 06/10/2026 | 3 | Depósito, saldo, perfil e e-mails concluídos (100 testes); aguardando revisão |
+| 06/10/2026 | – | Revisão geral: troca do dotenv por `process.loadEnvFile`, `trust proxy` só em produção, `x-request-id` sanitizado, 413/4xx do body-parser, shutdown que espera as requisições, README provisório. 103 testes, cobertura de 89% das linhas |
+| 06/10/2026 | 3 | Atlas confirmado: cadastro, login e depósito com transação no M0 funcionando. Render fora do ar até a Fase 17 (decisão do autor) |
+| 06/10/2026 | 4 | Cotação concluída com o endpoint v4 (119 testes); aguardando revisão |
+| 06/10/2026 | 5 | Compra e posição concluídas (143 testes; fluxo real no Atlas); aguardando revisão |
+| 06/10/2026 | 5 | D16 e D17 aprovadas pelo autor |
+| 06/10/2026 | 6 | Venda FIFO com reinvestimento concluída (165 testes; fluxo real no Atlas); aguardando revisão |
+| 06/10/2026 | 7 | Extrato e volume concluídos (183 testes; validado no Atlas); aguardando revisão. A API cobre os itens 1 a 10 do desafio |
+| 06/10/2026 | 7 | D18 aprovada (o autor seguiu para a Fase 8) |
+| 06/10/2026 | 8 | Histórico concluído (202 testes; 144 pontos reais na subida); aguardando revisão. A API cobre os 11 itens do desafio |
+| 07/10/2026 | 9 | Swagger, contrato e Postman oficial concluídos (220 testes); aguardando revisão. API completa |
+| 07/10/2026 | 10 | Fundação do front com tema dark/glass/blurple, conferida em prints; aguardando revisão |
+| 07/10/2026 | 10 | Ajuste pedido pelo autor: spotlight removido; efeito de foco (destaque + demais foscos) em cards e botões, conferido em prints |
+| 07/10/2026 | 10 | Efeito de foco aprovado e registrado como padrão de todas as telas (CLAUDE.md) |
+| 07/10/2026 | 11 | BFF e sessão concluídos (52 testes no front; 19 cenários ponta a ponta); aguardando revisão |

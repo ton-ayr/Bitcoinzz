@@ -17,17 +17,29 @@ export interface AppOptions {
   container: Container;
   logger: Logger;
   corsOrigins: string[];
+  /** true atrás de um proxy confiável (Render): o IP do cliente vem do X-Forwarded-For. */
+  trustProxy?: boolean;
 }
+
+// Só aceitamos um x-request-id "limpo" vindo de fora; qualquer outra coisa é substituída.
+// Evita que um texto arbitrário (ex.: com quebras de linha) seja injetado nos logs.
+const SAFE_REQUEST_ID = /^[\w-]{1,64}$/;
 
 /**
  * Monta a aplicação Express sem iniciar o servidor.
  * Separar `createApp` do `server.ts` permite testar as rotas com Supertest.
  */
-export function createApp({ container, logger, corsOrigins }: AppOptions): Express {
+export function createApp({
+  container,
+  logger,
+  corsOrigins,
+  trustProxy = false,
+}: AppOptions): Express {
   const app = express();
 
-  // Atrás do proxy do Render: necessário para o IP real chegar ao rate limit.
-  app.set('trust proxy', 1);
+  // Atrás do proxy do Render, o IP real do cliente chega no X-Forwarded-For.
+  // Sem proxy (desenvolvimento), confiar nesse header permitiria falsificar o IP.
+  app.set('trust proxy', trustProxy ? 1 : false);
 
   app.use(helmet());
   app.use(cors({ origin: corsOrigins }));
@@ -35,7 +47,8 @@ export function createApp({ container, logger, corsOrigins }: AppOptions): Expre
     pinoHttp({
       logger,
       genReqId: (req, res) => {
-        const requestId = req.headers['x-request-id']?.toString() ?? randomUUID();
+        const incoming = req.headers['x-request-id']?.toString();
+        const requestId = incoming && SAFE_REQUEST_ID.test(incoming) ? incoming : randomUUID();
         res.setHeader('x-request-id', requestId);
         return requestId;
       },

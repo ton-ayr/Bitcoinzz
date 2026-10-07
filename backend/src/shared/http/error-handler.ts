@@ -37,6 +37,10 @@ function toErrorBody(error: unknown): ErrorBody | null {
     if (error.type === 'entity.too.large') {
       return { statusCode: 413, message: 'Corpo da requisição muito grande' };
     }
+    // Outros erros 4xx do body-parser (ex.: charset ou content-encoding não suportado).
+    if (error.status >= 400 && error.status < 500) {
+      return { statusCode: error.status, message: 'Requisição inválida' };
+    }
   }
 
   return null;
@@ -52,6 +56,10 @@ export function createErrorHandler(logger: Logger): ErrorRequestHandler {
     const body = toErrorBody(error);
 
     if (body) {
+      // Erros 5xx "esperados" (ex.: Mercado Bitcoin fora do ar) também precisam deixar rastro no log.
+      if (body.statusCode >= 500) {
+        logger.warn({ err: error }, body.message);
+      }
       res.status(body.statusCode).json(body);
       return;
     }
