@@ -141,8 +141,15 @@ export function SellView() {
   const priceText = priceCents !== null ? brl(priceCents) : null;
   const soldText = preview ? (valid ? `≈ ${btc(preview.soldSats)}` : '—') : null;
   const receiveText = valid ? brl(amountCents) : '—';
+  // "Saldo depois": campo vazio → saldo atual; valor válido → saldo projetado; inválido → "—".
   const balanceAfterText =
-    balanceCents === null ? null : valid ? brl(balanceCents + amountCents) : '—';
+    balanceCents === null
+      ? null
+      : amountCents === 0
+        ? brl(balanceCents)
+        : valid
+          ? brl(balanceCents + amountCents)
+          : '—';
   const reinvestmentText =
     preview?.reinvestment &&
     `${btc(preview.reinvestment.btcSats)} (${brl(preview.reinvestment.investedCents)})`;

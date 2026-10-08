@@ -64,7 +64,7 @@ describe('SaleService (venda FIFO com reinvestimento)', () => {
 
   beforeEach(() => setup());
 
-  it('exemplo do PRD: vende R$ 600 de 0,002 BTC (comprado a R$ 400.000, cotado a R$ 500.000)', async () => {
+  it('exemplo das regras de negócio: vende R$ 600 de 0,002 BTC (comprado a R$ 400.000, cotado a R$ 500.000)', async () => {
     const a = await invest(200_000, 40_000_000, OCT_1); // R$ 800 investidos; vale R$ 1.000
 
     const result = await service.sell(userId, 60_000);

@@ -1,0 +1,51 @@
+# CI: a cada push na main e em pull requests, confere lint, tipos, testes e build da API e do front.
+# O Render só publica a API depois que este workflow passar (render.yaml: autoDeployTrigger).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    name: API (lint, tipos, testes, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Sobe um MongoDB em memória (replica set) só para os testes de integração.
+      - run: npm test
+      - run: npm run build
+
+  web:
+    name: Front (lint, tipos, testes, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # O build pega erros que só aparecem no pré-render (ex.: Cache Components).
+      - run: npm run build

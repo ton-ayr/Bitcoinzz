@@ -85,7 +85,7 @@ describe('toCsv', () => {
 
     expect(csv.split('\r\n')).toEqual([
       'Data;Hora;Tipo;Valor (R$);BTC;Cotação (R$)',
-      '07/10/2026;14:05;Compra de bitcoin;1500,00;0,00358609;418282,00',
+      '07/10/2026;14:05;Compra de BTC;1500,00;0,00358609;418282,00',
       '07/10/2026;14:02;Depósito;5000,00;;',
     ]);
   });

@@ -30,6 +30,15 @@ describe('schemas de autenticação (mesmas regras da API)', () => {
     expect(registerSchema.safeParse(valid).success).toBe(true);
   });
 
+  it('nome vazio pede o nome; nome curto explica o mínimo', () => {
+    expect(messagesOf(registerSchema.safeParse({ ...valid, name: '  ' }))[0]).toBe(
+      'Informe o nome',
+    );
+    expect(messagesOf(registerSchema.safeParse({ ...valid, name: 'A' }))).toEqual([
+      'O nome deve ter pelo menos 2 caracteres',
+    ]);
+  });
+
   it.each([
     ['curta1', 'A senha deve ter pelo menos 8 caracteres'],
     ['semnumeros', 'A senha deve conter pelo menos um número'],

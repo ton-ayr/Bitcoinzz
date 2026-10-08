@@ -116,10 +116,11 @@ export function PurchaseView() {
       : amountCents === 0
         ? '—'
         : `≈ ${formatBTC(satsToBtc(preview.btcSats))}`;
+  // "Saldo depois": campo vazio → saldo atual; valor válido → saldo projetado; inválido → "—".
   const balanceAfterText =
     balanceCents === null
       ? null
-      : preview.balanceAfterCents < 0
+      : amountCents > 0 && preview.error
         ? '—'
         : brl(preview.balanceAfterCents);
 
@@ -146,6 +147,18 @@ export function PurchaseView() {
                   }
                 >
                   Você ainda não tem saldo para investir.
+                </Alert>
+              )}
+              {balance.isError && (
+                <Alert
+                  severity="error"
+                  action={
+                    <Button size="small" color="inherit" onClick={() => balance.refetch()}>
+                      Tentar de novo
+                    </Button>
+                  }
+                >
+                  Não foi possível carregar o seu saldo.
                 </Alert>
               )}
               {formError && (

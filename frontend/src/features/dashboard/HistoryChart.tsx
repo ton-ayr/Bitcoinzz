@@ -1,6 +1,7 @@
 'use client';
 
 import ShowChartRoundedIcon from '@mui/icons-material/ShowChartRounded';
+import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
@@ -76,10 +77,12 @@ export function HistoryChart() {
 
   return (
     <Card sx={{ p: { xs: 2, sm: 3 }, '&:hover': { transform: 'none' } }}>
+      {/* No celular, o chip de variação desce para baixo do título em vez de espremê-lo. */}
       <Stack
         direction="row"
         spacing={1.5}
-        sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
+        useFlexGap
+        sx={{ alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', mb: 1 }}
       >
         <div>
           <Typography variant="h6" component="h2">
@@ -99,6 +102,11 @@ export function HistoryChart() {
           icon={<ShowChartRoundedIcon />}
           title="Não foi possível carregar o histórico"
           description="Tente de novo em instantes."
+          action={
+            <Button variant="outlined" onClick={() => history.refetch()}>
+              Tentar de novo
+            </Button>
+          }
         />
       ) : points.length < 2 ? (
         <EmptyState

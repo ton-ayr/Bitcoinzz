@@ -71,7 +71,7 @@ export class MongooseTransactionRepository implements TransactionRepository {
   }
 
   async sumBtcVolumeBetween(from: Date, to: Date): Promise<BtcVolume> {
-    // Reinvestimentos não entram: não são compras de mercado (regra 5 do PRD).
+    // Reinvestimentos não entram: não são compras de mercado (regra 5 das regras de negócio do README).
     const totals = await TransactionModel.aggregate<{ _id: 'PURCHASE' | 'SALE'; sats: number }>([
       { $match: { type: { $in: ['PURCHASE', 'SALE'] }, createdAt: { $gte: from, $lte: to } } },
       { $group: { _id: '$type', sats: { $sum: '$btcSats' } } },

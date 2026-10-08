@@ -8,7 +8,7 @@ const ONE_HOUR = 60 * 60 * 1000;
 /**
  * Login: no máximo 10 senhas erradas POR E-MAIL a cada 15 min (acertos não contam).
  * A chave é o e-mail, e não o IP, porque pelo BFF do front todas as requisições
- * chegam com o IP do servidor da Vercel. Decisão registrada na ARQUITETURA.
+ * chegam com o IP do servidor da Vercel. Ver "Decisões-chave" em docs/architecture.md.
  */
 export function createLoginRateLimiter() {
   return rateLimit({

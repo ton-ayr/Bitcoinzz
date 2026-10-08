@@ -164,7 +164,10 @@ export function DepositView() {
                 { label: 'Depósito', value: `+ ${brl(amountCents)}` },
                 {
                   label: 'Saldo depois',
-                  value: balanceValue(preview.balanceAfterCents),
+                  value:
+                    amountCents > 0 && preview.error
+                      ? '—'
+                      : balanceValue(preview.balanceAfterCents),
                   emphasis: true,
                 },
               ]}

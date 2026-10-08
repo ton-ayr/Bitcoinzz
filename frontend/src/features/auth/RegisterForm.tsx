@@ -49,7 +49,7 @@ export function RegisterForm() {
         email,
         password,
       });
-      toast.success(`Conta criada! Bem-vindo(a), ${result.name.split(' ')[0]}.`);
+      toast.success(`Conta criada! Boas-vindas, ${result.name.split(' ')[0]}.`);
       // Login automático; se ele falhar, a pessoa entra pela tela de login.
       router.replace(result.loggedIn ? '/dashboard' : '/login');
       router.refresh();

@@ -1,6 +1,6 @@
 'use client';
 
-// Prévia do design system (Fase 10). Disponível só em desenvolvimento, em /design.
+// Prévia do design system. Disponível só em desenvolvimento, em /design.
 
 import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
 import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded';

@@ -92,6 +92,8 @@ describe('DepositView', () => {
     await user.type(field, '100000001'); // R$ 1.000.000,01
 
     expect(screen.getByText(/O valor máximo por depósito é/)).toBeTruthy();
+    // Valor inválido não mostra um saldo projetado fictício.
+    expect(rowValue('Saldo depois')).toBe('—');
     await user.click(screen.getByRole('button', { name: 'Depositar' }));
     expect(depositCalls(fetchMock)).toHaveLength(0);
   });

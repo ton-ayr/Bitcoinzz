@@ -40,8 +40,8 @@ export const TRANSACTION_TYPES: Record<
   { label: string; plural: string; flow: 'in' | 'out' | 'neutral' }
 > = {
   DEPOSIT: { label: 'Depósito', plural: 'Depósitos', flow: 'in' },
-  PURCHASE: { label: 'Compra de bitcoin', plural: 'Compras', flow: 'out' },
-  SALE: { label: 'Venda de bitcoin', plural: 'Vendas', flow: 'in' },
+  PURCHASE: { label: 'Compra de BTC', plural: 'Compras', flow: 'out' },
+  SALE: { label: 'Venda de BTC', plural: 'Vendas', flow: 'in' },
   // A sobra da venda parcial continua investida: não mexe no saldo.
   REINVESTMENT: { label: 'Reinvestimento', plural: 'Reinvestimentos', flow: 'neutral' },
 };

@@ -1,0 +1,46 @@
+# Infraestrutura da API no Render (Blueprint): no painel, New > Blueprint > este repositório.
+# Os segredos (sync: false) são pedidos no painel na criação e nunca ficam no git.
+# Referência: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: bitcoinzz-api
+    runtime: node
+    plan: free
+    # Faixas de IP de saída são por região: são elas que o Atlas libera (README, seção Deploy).
+    region: virginia
+    rootDir: backend
+    # As dependências de desenvolvimento (TypeScript) são necessárias para compilar.
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    # Só publica depois que o CI (GitHub Actions) passar.
+    autoDeployTrigger: checksPass
+    # Mudanças só no front (ou na documentação) não geram deploy da API.
+    buildFilter:
+      include:
+        - backend/**
+        - .nvmrc
+        - render.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # O binário do MongoDB em memória (só dos testes) não precisa ser baixado no build.
+      - key: MONGOMS_DISABLE_POSTINSTALL
+        value: '1'
+      - key: MONGODB_URI
+        sync: false
+      # Segredo aleatório de 256 bits gerado pelo Render (ninguém precisa criar nem copiar).
+      - key: JWT_SECRET
+        generateValue: true
+      # E-mail pelo SMTP do Brevo (credenciais preenchidas no painel).
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false

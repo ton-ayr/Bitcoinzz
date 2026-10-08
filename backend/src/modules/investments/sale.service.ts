@@ -33,7 +33,7 @@ interface SalePlan {
 }
 
 /**
- * Venda por valor em R$ (regras na seção 5 do PRD):
+ * Venda por valor em R$ (regras 2 e 3 das regras de negócio do README):
  * 1. Consome os investimentos do mais antigo para o mais novo (FIFO), pela cotação de COMPRA.
  * 2. O investimento atingido parcialmente é liquidado por inteiro; o BTC que sobra vira um
  *    REINVESTMENT com a MESMA cotação e a MESMA data do original (nenhum BTC é criado ou perdido).

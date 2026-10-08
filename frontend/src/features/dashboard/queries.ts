@@ -7,7 +7,7 @@ import type { Balance, HistoryPoint, Position, Quote, Volume } from './types';
 
 const SECOND = 1000;
 
-// Cada dado tem seu ritmo de atualização (definido na ARQUITETURA, seção 8.3).
+// Cada dado tem seu ritmo de atualização (ver docs/architecture.md).
 export const useBalance = () =>
   useQuery({ queryKey: queryKeys.balance, queryFn: () => api.get<Balance>('account/balance') });
 

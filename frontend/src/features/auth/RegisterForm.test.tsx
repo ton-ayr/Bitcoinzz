@@ -116,6 +116,6 @@ describe('RegisterForm', () => {
       email: 'fulano@email.com',
       password: 'fulano123',
     });
-    expect(toastSuccess).toHaveBeenCalledWith('Conta criada! Bem-vindo(a), Fulano.');
+    expect(toastSuccess).toHaveBeenCalledWith('Conta criada! Boas-vindas, Fulano.');
   });
 });

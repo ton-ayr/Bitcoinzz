@@ -59,7 +59,7 @@ describe('money', () => {
   });
 
   describe('centsToSats', () => {
-    // Exemplo do PRD: BTC a R$ 400.000 → R$ 800 compra 0,002 BTC.
+    // Exemplo das regras de negócio: BTC a R$ 400.000 → R$ 800 compra 0,002 BTC.
     it('calcula quantos satoshis um valor compra', () => {
       expect(centsToSats(80000, 40000000)).toBe(200000);
     });

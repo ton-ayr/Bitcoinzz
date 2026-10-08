@@ -184,6 +184,8 @@ export function StatementView() {
           label="Depositado"
           icon={<AddCardRoundedIcon />}
           loading={loading}
+          error={statement.isError}
+          onRetry={() => statement.refetch()}
           value={brl(totals.depositedCents)}
           footer={plural(totals.counts.DEPOSIT, 'depósito', 'depósitos')}
         />
@@ -191,6 +193,8 @@ export function StatementView() {
           label="Comprado"
           icon={<CallMadeRoundedIcon />}
           loading={loading}
+          error={statement.isError}
+          onRetry={() => statement.refetch()}
           value={brl(totals.purchasedCents)}
           footer={`${formatBTC(satsToBtc(totals.purchasedSats))} em ${plural(totals.counts.PURCHASE, 'compra', 'compras')}`}
         />
@@ -198,6 +202,8 @@ export function StatementView() {
           label="Vendido"
           icon={<CallReceivedRoundedIcon />}
           loading={loading}
+          error={statement.isError}
+          onRetry={() => statement.refetch()}
           value={brl(totals.soldCents)}
           footer={`${formatBTC(satsToBtc(totals.soldSats))} em ${plural(totals.counts.SALE, 'venda', 'vendas')}`}
         />

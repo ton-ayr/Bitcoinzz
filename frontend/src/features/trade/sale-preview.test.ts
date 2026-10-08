@@ -11,14 +11,14 @@ const investment = (id: string, btcSats: number, purchasePriceCents: number): Op
   purchasePriceCents,
 });
 
-// Exemplo do PRD: A tem 0,002 BTC comprados a R$ 400.000 (R$ 800); a cotação de compra é R$ 500.000.
+// Exemplo das regras de negócio: A tem 0,002 BTC comprados a R$ 400.000 (R$ 800); a cotação de compra é R$ 500.000.
 const a = investment('a', 200_000, 40_000_000); // vale R$ 1.000 agora
 const b = investment('b', 100_000, 45_000_000); // vale R$ 500 agora
 const c = investment('c', 50_000, 48_000_000); // vale R$ 250 agora
 const PRICE = 50_000_000;
 
 describe('salePreview (FIFO, mesmas regras da API)', () => {
-  it('exemplo do PRD: venda parcial de R$ 600 → reinvestimento de R$ 320 com a cotação original', () => {
+  it('exemplo das regras de negócio: venda parcial de R$ 600 → reinvestimento de R$ 320 com a cotação original', () => {
     const preview = salePreview({ amountCents: 60_000, investments: [a], priceCents: PRICE });
 
     expect(preview.error).toBeNull();

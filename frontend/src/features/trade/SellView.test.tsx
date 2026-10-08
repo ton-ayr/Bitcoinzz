@@ -102,6 +102,12 @@ describe('SellView', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('campo vazio: "Saldo depois" mostra o saldo atual (igual à compra e ao depósito)', async () => {
+    await setup();
+    expect(rowValue('Saldo depois')).toBe('R$ 100,00');
+    expect(rowValue('Você recebe')).toBe('—');
+  });
+
   it('"Tudo" preenche o valor da posição inteira', async () => {
     const { field, user } = await setup();
     await user.click(screen.getByRole('button', { name: 'Tudo' }));

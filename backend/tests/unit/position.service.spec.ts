@@ -40,7 +40,7 @@ describe('PositionService', () => {
     expect(quoteProvider.calls).toBe(0);
   });
 
-  it('exemplo do PRD: 0,002 BTC comprado a R$ 400.000 vale R$ 1.000 a R$ 500.000 (+25%)', async () => {
+  it('exemplo das regras de negócio: 0,002 BTC comprado a R$ 400.000 vale R$ 1.000 a R$ 500.000 (+25%)', async () => {
     await invest('u1', 200_000, 40_000_000, '2026-10-01T10:00:00Z');
 
     const [item] = (await service.getPosition('u1')).investments;

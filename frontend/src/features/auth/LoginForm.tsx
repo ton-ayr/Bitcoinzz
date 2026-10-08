@@ -69,7 +69,7 @@ export function LoginForm() {
             Entrar
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            Bem-vindo de volta! Acesse sua carteira.
+            Que bom ter você de volta! Acesse sua carteira.
           </Typography>
         </div>
 

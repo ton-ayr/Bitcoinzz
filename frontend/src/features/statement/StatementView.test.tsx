@@ -90,12 +90,12 @@ describe('StatementView', () => {
 
     // Cada linha: tipo, valor com sinal e, embaixo, BTC, cotação e hora (São Paulo)
     expect(rowsOf('Hoje')).toEqual([
-      'Compra de bitcoin− R$ 1.500,00₿ 0,00358609 a R$ 418.282,00 · 11:00',
+      'Compra de BTC− R$ 1.500,00₿ 0,00358609 a R$ 418.282,00 · 11:00',
       'Depósito+ R$ 5.000,0010:00',
     ]);
     expect(rowsOf('Ontem')).toEqual([
       'ReinvestimentoR$ 320,00₿ 0,00080000 a R$ 400.000,00 · 09:00 · sobra da venda, com a cotação original',
-      'Venda de bitcoin+ R$ 600,00₿ 0,00120000 a R$ 500.000,00 · 09:00',
+      'Venda de BTC+ R$ 600,00₿ 0,00120000 a R$ 500.000,00 · 09:00',
     ]);
     expect(screen.getByRole('region', { name: '01/10/2026' })).toBeTruthy();
 
@@ -138,14 +138,32 @@ describe('StatementView', () => {
 
     expect(screen.queryByRole('region', { name: 'Hoje' })).toBeNull();
     expect(rowsOf('Ontem')).toHaveLength(1);
-    expect(screen.getByText('Venda de bitcoin')).toBeTruthy();
+    expect(screen.getByText('Venda de BTC')).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Exportar CSV' }));
     const csv = await blobs[0]!.text();
     expect(csv.split('\r\n')).toEqual([
       'Data;Hora;Tipo;Valor (R$);BTC;Cotação (R$)',
-      '06/10/2026;09:00;Venda de bitcoin;600,00;0,00120000;500000,00',
+      '06/10/2026;09:00;Venda de BTC;600,00;0,00120000;500000,00',
     ]);
+  });
+
+  it('extrato fora do ar: totais mostram o erro (e não R$ 0,00) e dá para tentar de novo', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json(
+          { statusCode: 503, message: 'Servidor indisponível no momento.' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderWithQuery(<StatementView />);
+
+    expect(await screen.findByText('Não foi possível carregar o extrato')).toBeTruthy();
+    expect(screen.getAllByText('Não foi possível carregar.')).toHaveLength(3);
+    expect(screen.queryByText(normalizeMatch('R$ 0,00'))).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tentar carregar Depositado de novo' })).toBeTruthy();
   });
 
   it('período sem lançamentos: estado vazio e CSV desligado', async () => {

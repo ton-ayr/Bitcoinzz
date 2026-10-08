@@ -8,7 +8,7 @@ export interface DailyVolume {
   soldSats: number;
 }
 
-/** Volume: total de BTC comprado e vendido na plataforma no dia corrente (regra 5 do PRD). */
+/** Volume: total de BTC comprado e vendido na plataforma no dia corrente (regra 5 das regras de negócio do README). */
 export class VolumeService {
   constructor(
     private readonly transactions: TransactionRepository,

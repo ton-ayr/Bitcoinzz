@@ -122,7 +122,14 @@ export function PositionsList() {
           ))}
         </Stack>
       ) : position.isError ? (
-        <Typography color="text.secondary">Não foi possível carregar os investimentos.</Typography>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography color="text.secondary">
+            Não foi possível carregar os investimentos.
+          </Typography>
+          <Button size="small" variant="outlined" onClick={() => position.refetch()}>
+            Tentar de novo
+          </Button>
+        </Stack>
       ) : items.length === 0 ? (
         <EmptyState
           icon={<CurrencyBitcoinRoundedIcon />}
