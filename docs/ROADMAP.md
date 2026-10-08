@@ -24,9 +24,9 @@
 | 11 | BFF, sessão e proteção de rotas | ✅ |
 | 12 | Login e cadastro | ✅ |
 | 13 | Shell e dashboard | ✅ |
-| 14 | Depósito e compra com preview | 🟨 |
-| 15 | Venda e extrato | ⬜ |
-| 16 | Docker Compose | ⬜ |
+| 14 | Depósito e compra com preview | ✅ |
+| 15 | Venda e extrato | ✅ |
+| 16 | Docker Compose | 🟨 |
 | 17 | README e deploy | ⬜ |
 
 **Total:** a Fase 0 (documentação) e mais **17 fases de implementação**.
@@ -41,6 +41,7 @@
 | ~~A4~~ | ✅ Commits consolidados até a Fase 11 (`de8bb7e`). Daqui em diante, o autor commita quando quiser (prefere commits maiores) | – |
 | ~~A5~~ | ✅ `PORT=3333` no `backend/.env` | – |
 | A6 | (Opcional) Apagar o `package-lock.json` solto em `C:/Users/ayrto` (o build do Next avisa que o ignora) e, se quiser, desligar a telemetria anônima do Next: `npx next telemetry disable` | – |
+| A7 | Para usar o Docker: copiar `.env.example` para `.env` **na raiz** e preencher o `JWT_SECRET` (gerar com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`) | `docker compose up` (sem ele, o compose recusa subir) |
 
 ---
 
@@ -210,15 +211,26 @@
 - [x] **Aceite:** no navegador real, com a API e a cotação reais: depósito de R$ 5.000 → compra de R$ 1.500 com confirmação → "Ver no dashboard" mostra o saldo e o investimento novos sem recarregar a página. Prints de desktop e celular conferidos, sem erros no console.
 
 ## Fase 15: Venda e extrato
-- [ ] Venda em R$ com preview (BTC estimado), limite pelo valor da posição e explicação de FIFO e reinvestimento.
-- [ ] Extrato: DatePickers de/até (padrão de 90 dias), chips 7/30/90 d e tabela com chips por tipo.
-- [ ] **Testes:** preview da venda e montagem do intervalo de datas.
-- [ ] **Aceite:** a venda parcial aparece no extrato como Venda + Reinvestimento.
+- [x] Venda em R$ pela cotação de compra, com atalhos de 25%, 50% e Tudo da posição, limite pelo valor da posição e diálogo "Revise a venda".
+- [x] Prévia detalhada do FIFO (D34): `salePreview` espelha o `planSale` da API (mesmo arredondamento e mensagens) e mostra, em ordem, o investimento vendido inteiro, o vendido em parte e a sobra que vira reinvestimento.
+- [x] Resumo de sucesso com o resgate, o BTC vendido, a cotação e o reinvestimento reais, com atalho "Ver no extrato".
+- [x] Extrato com lista agrupada por dia (D36): "Hoje", "Ontem" e datas, no horário de São Paulo; ícone por tipo, BTC, cotação, hora e valor com sinal (+ entrada, − saída, reinvestimento sem sinal).
+- [x] Período: atalhos de 7, 30 e 90 dias (padrão 90, mesma conta da API) e MUI X Date Pickers em pt-BR (D35), com as mesmas validações da API (início ≤ fim, até 366 dias). O `LocalizationProvider` fica só no filtro do extrato, não nos Providers globais: o código dos pickers só é carregado nessa tela.
+- [x] Extras (D37): totais do período (depositado, comprado e vendido), filtro por tipo com contagem e exportação em CSV para o Excel em português (gerado no navegador, com o que está na tela).
+- [x] Componentes provisórios `ComingSoon` removidos: todas as telas do menu existem.
+- [x] Ajustes vistos no navegador: linhas do extrato no celular (valor na linha do título), calendário mais opaco que o vidro e cantos dos blocos do FIFO.
+- [x] **Testes:** `salePreview` (exemplo do PRD, FIFO com vários investimentos, venda total, arredondamento que consome tudo, mensagens), conversões novas de `lib/money`, `lib/dates` (fuso de São Paulo, meses, ano bissexto), período, agrupamento, totais e CSV; telas de venda e extrato com Testing Library (prévia FIFO, limite, "Tudo", confirmação com reinvestimento, sem bitcoins, 90 dias padrão, atalho de 7 dias, filtro + CSV, período vazio). 158 testes no front.
+- [x] **Aceite:** no navegador real, com a API e a cotação reais: venda de R$ 1.800 consumiu a compra mais antiga inteira e parte da segunda; o extrato mostrou Venda + Reinvestimento (R$ 497,45, com a cotação original); o CSV baixou com o filtro aplicado. Prints de desktop, celular e calendário conferidos, sem erros no console.
 
 ## Fase 16: Docker Compose
-- [ ] Dockerfiles multi-stage (`node:24-alpine`, usuário não-root) e `.dockerignore`.
-- [ ] `docker-compose.yml`: `mongo:8` com replica set e healthcheck, `api` e `web`.
-- [ ] **Aceite:** `docker compose up --build` sobe tudo e o fluxo completo funciona em `localhost:3000`. Exige Docker Desktop; **decisão do autor** sobre instalar.
+- [x] Docker Desktop instalado pelo autor (Docker 29.8, Compose v5.5; requisitos e licença na ARQUITETURA, seção 12).
+- [x] Dockerfiles multi-stage (`node:24-alpine`): a imagem final leva só o necessário (API: `dist` + dependências de produção + `docs`; front: servidor standalone + `.next/static`), roda com o usuário `node` (sem privilégios) e não contém nenhum `.env` (`.dockerignore`).
+- [x] `docker-compose.yml` só com o modo produção (D39): `mongo:8` com replica set de 1 nó (healthcheck que inicia o replica set e só fica "saudável" quando aceita escrita), `api` (healthcheck em `/health`) e `web` (sobe depois da API saudável). Portas presas ao `127.0.0.1`; dados num volume; banco começa vazio (D40).
+- [x] `JWT_SECRET` obrigatório no `.env` da raiz (D38): sem ele, o compose recusa subir com uma mensagem clara. Novo `.env.example` na raiz (segredo + SMTP opcional).
+- [x] Bug achado no Docker e corrigido: com `HOSTNAME=0.0.0.0`, a URL interna do Next vira `http://0.0.0.0:3000` e a checagem de origem do BFF recusava todo POST (403). Agora ela compara com o host que o navegador acessou (`X-Forwarded-Host` ou `Host`). Teste novo reproduz o caso.
+- [x] Erro de console achado na verificação (existia desde a Fase 12): logo após o login, o prefetch do link "Criar conta" já ia com sessão, o proxy redirecionava e o prefetch acabava em 404. Os links entre login e cadastro ficaram sem prefetch.
+- [x] **Testes:** `isSameOrigin` com Host/X-Forwarded-Host (159 testes no front; API sem mudança de código).
+- [x] **Aceite:** `docker compose up --build` sobe tudo saudável (build em ~2 min; subida em ~45 s). Pelo front em `localhost:3000`: cadastro → depósito → 2 compras → venda parcial com reinvestimento → extrato, volume e 144 pontos de histórico. Login pelo navegador com cookie `Secure` em `http://localhost`, sem erros no console. Swagger em `localhost:3333/docs`. Dados mantidos após `down` → `up`; `down` em 2,8 s (desligamento com calma). Sem o segredo no `.env`, o compose recusa subir.
 
 ## Fase 17: README e deploy
 - [ ] Verificar e registrar: configuração atual do Render e da Vercel.
@@ -258,3 +270,7 @@
 | 07/10/2026 | 13 | Shell e dashboard concluídos (91 testes no front; dados reais conferidos no navegador); aguardando revisão |
 | 07/10/2026 | 13 | Aprovada pelo autor. Escolhas da Fase 14: campo "estilo app de banco", resumo de sucesso na tela, confirmação só na compra, atalhos fixos no depósito e % do saldo na compra |
 | 07/10/2026 | 14 | Depósito e compra concluídos (131 testes no front; fluxo real conferido no navegador); aguardando revisão |
+| 07/10/2026 | 14 | Aprovada pelo autor. Escolhas da Fase 15: prévia detalhada do FIFO, MUI X Date Pickers, extrato agrupado por dia, totais, filtro por tipo e CSV |
+| 08/10/2026 | 15 | Venda e extrato concluídos (158 testes no front; venda parcial e extrato conferidos no navegador); aguardando revisão. O front cobre os 6 itens do desafio |
+| 08/10/2026 | 16 | Autor instalou o Docker Desktop e aprovou a Fase 15. Escolhas: JWT_SECRET obrigatório no `.env`, só modo produção, banco vazio |
+| 08/10/2026 | 16 | Docker Compose concluído (fluxo completo conferido nos containers; 159 testes no front); aguardando revisão |

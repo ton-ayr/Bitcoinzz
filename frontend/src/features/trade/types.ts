@@ -10,3 +10,13 @@ export interface PurchaseResult {
   btcPrice: number;
   balance: number;
 }
+
+export interface SaleResult {
+  amount: number;
+  btcAmount: number;
+  /** Cotação de compra usada na venda. */
+  btcPrice: number;
+  /** Sobra da venda parcial, que continua investida (cotação original). */
+  reinvestment: { amount: number; btcAmount: number; btcPrice: number } | null;
+  balance: number;
+}

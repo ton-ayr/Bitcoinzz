@@ -107,7 +107,9 @@ export function LoginForm() {
 
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
           Não tem conta?{' '}
-          <Link component={NextLink} href="/register" sx={{ fontWeight: 700 }}>
+          {/* Sem prefetch: logo após o login o Next pré-carregaria /register já com sessão, e o
+              proxy o redireciona para o dashboard (o prefetch acabava em 404 no console). */}
+          <Link component={NextLink} href="/register" prefetch={false} sx={{ fontWeight: 700 }}>
             Criar conta
           </Link>
         </Typography>

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { centsToSats, parseMoneyInput, satsToBtc, toCents, toReais } from './money';
+import {
+  btcToSats,
+  centsToSats,
+  parseMoneyInput,
+  satsToBtc,
+  satsToCents,
+  toCents,
+  toReais,
+} from './money';
 
 describe('conversões', () => {
   it('R$ da API → centavos, sem erro de ponto flutuante', () => {
@@ -27,6 +35,22 @@ describe('centsToSats (BTC estimado na compra)', () => {
   it('valor ou cotação zerados → 0', () => {
     expect(centsToSats(0, 41_828_200)).toBe(0);
     expect(centsToSats(100, 0)).toBe(0);
+  });
+
+  it('na venda arredonda para cima (os sats vendidos cobrem o valor), só se houver resto', () => {
+    expect(centsToSats(1, 41_828_200, 'ceil')).toBe(3); // 2,39 → 3
+    expect(centsToSats(60_000, 50_000_000, 'ceil')).toBe(120_000); // divisão exata: não soma 1
+  });
+});
+
+describe('satsToCents e btcToSats', () => {
+  it('valor dos sats na cotação, para baixo no centavo (igual à API)', () => {
+    expect(satsToCents(200_000, 50_000_000)).toBe(100_000); // 0,002 BTC a R$ 500.000 = R$ 1.000
+    expect(satsToCents(3, 60_000_000)).toBe(1); // 1,8 centavo → 1
+  });
+
+  it('BTC da API → sats, sem erro de ponto flutuante', () => {
+    expect(btcToSats(0.00358609)).toBe(358_609); // 0.00358609 × 1e8 = 358608.99999999994
   });
 });
 

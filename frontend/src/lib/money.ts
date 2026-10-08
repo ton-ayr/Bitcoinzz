@@ -23,13 +23,33 @@ export function satsToBtc(sats: number): number {
   return sats / SATS_PER_BTC;
 }
 
+/** BTC vindo da API → satoshis (0.00358609 → 358609). */
+export function btcToSats(btc: number): number {
+  return Math.round(btc * SATS_PER_BTC);
+}
+
 /**
- * Quantos satoshis um valor compra, arredondando para baixo, igual à API: o cliente nunca
- * recebe mais BTC do que pagou. BigInt evita perder precisão em `centavos × 100.000.000`.
+ * Quantos satoshis um valor compra, igual à API. `floor` (padrão, compra): o cliente nunca
+ * recebe mais BTC do que pagou. `ceil` (venda): os sats vendidos cobrem o valor pedido.
+ * BigInt evita perder precisão em `centavos × 100.000.000`.
  */
-export function centsToSats(cents: number, priceCents: number): number {
+export function centsToSats(
+  cents: number,
+  priceCents: number,
+  rounding: 'floor' | 'ceil' = 'floor',
+): number {
   if (cents <= 0 || priceCents <= 0) return 0;
-  return Number((BigInt(cents) * BigInt(SATS_PER_BTC)) / BigInt(priceCents));
+  const numerator = BigInt(cents) * BigInt(SATS_PER_BTC);
+  const denominator = BigInt(priceCents);
+  const sats = numerator / denominator; // divisão de BigInt já arredonda para baixo
+  const roundUp = rounding === 'ceil' && numerator % denominator !== BigInt(0);
+  return Number(roundUp ? sats + BigInt(1) : sats);
+}
+
+/** Quanto valem os satoshis numa cotação, arredondado para baixo no centavo (igual à API). */
+export function satsToCents(sats: number, priceCents: number): number {
+  if (sats <= 0 || priceCents <= 0) return 0;
+  return Number((BigInt(sats) * BigInt(priceCents)) / BigInt(SATS_PER_BTC));
 }
 
 /**

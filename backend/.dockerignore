@@ -1,0 +1,8 @@
+# Fora da imagem: dependências e builds locais (são refeitos lá dentro), testes e segredos.
+node_modules
+dist
+coverage
+tests
+*.log
+.env
+.env.*

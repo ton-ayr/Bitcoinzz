@@ -1,7 +1,7 @@
-import { ComingSoon } from '@/components/ComingSoon';
+import { StatementView } from '@/features/statement/StatementView';
 
 export const metadata = { title: 'Extrato' };
 
 export default function Page() {
-  return <ComingSoon title="Extrato" phase={15} />;
+  return <StatementView />;
 }

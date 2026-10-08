@@ -114,8 +114,18 @@ export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return true; // navegadores sempre enviam Origin em POST; ferramentas como curl não
   try {
-    return new URL(origin).host === new URL(request.url).host;
+    return new URL(origin).host === publicHost(request);
   } catch {
     return false;
   }
+}
+
+/**
+ * Host que o navegador acessou. A URL interna pode ser outra: no Docker, o servidor escuta em
+ * 0.0.0.0:3000 e o navegador acessou localhost:3000; atrás de um proxy, o proxy informa o host
+ * original em X-Forwarded-Host. Uma página de outro site não consegue trocar esses cabeçalhos.
+ */
+function publicHost(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
+  return forwarded || request.headers.get('host') || new URL(request.url).host;
 }

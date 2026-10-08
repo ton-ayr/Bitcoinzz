@@ -3,14 +3,13 @@
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { FOCUS_ITEM, FocusGroup } from '@/components/FocusGroup';
+import { FOCUS_ITEM } from '@/components/FocusGroup';
 import { MoneyField } from '@/components/MoneyField';
 import { PageHeader } from '@/components/PageHeader';
 import { useBalance, useQuote } from '@/features/dashboard/queries';
@@ -20,17 +19,11 @@ import { satsToBtc, toCents, toReais } from '@/lib/money';
 import { relativeTime } from '@/lib/time';
 import { useNow } from '@/lib/use-now';
 import { usePurchase } from './mutations';
-import { percentOf, purchasePreview } from './preview';
+import { purchasePreview } from './preview';
+import { QuickPercentChips } from './QuickPercentChips';
 import { SuccessPanel } from './SuccessPanel';
 import { SummaryList } from './SummaryList';
 import { PANEL_SX, TradeLayout } from './TradeLayout';
-
-// Atalhos que preenchem uma parte do saldo disponível.
-const QUICK_PERCENTS = [
-  { label: '25%', percent: 25 },
-  { label: '50%', percent: 50 },
-  { label: 'Tudo', percent: 100 },
-];
 
 const brl = (cents: number) => formatBRL(toReais(cents));
 
@@ -171,18 +164,7 @@ export function PurchaseView() {
                   fieldError ?? (balanceCents !== null ? `Disponível: ${brl(balanceCents)}` : ' ')
                 }
               />
-              <FocusGroup sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {QUICK_PERCENTS.map(({ label, percent }) => (
-                  <Chip
-                    key={label}
-                    className={FOCUS_ITEM}
-                    label={label}
-                    variant="outlined"
-                    disabled={!balanceCents}
-                    onClick={() => changeAmount(percentOf(balanceCents ?? 0, percent))}
-                  />
-                ))}
-              </FocusGroup>
+              <QuickPercentChips totalCents={balanceCents} onPick={changeAmount} />
               <Button type="submit" variant="contained" size="large" fullWidth disabled={!ready}>
                 Revisar compra
               </Button>

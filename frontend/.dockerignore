@@ -1,0 +1,8 @@
+# Fora da imagem: dependências e builds locais (são refeitos lá dentro) e segredos.
+node_modules
+.next
+coverage
+*.log
+*.tsbuildinfo
+.env
+.env.*

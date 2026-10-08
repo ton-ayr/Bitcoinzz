@@ -132,8 +132,8 @@ export function RegisterForm() {
         </Button>
 
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-          Já tem conta?{' '}
-          <Link component={NextLink} href="/login" sx={{ fontWeight: 700 }}>
+          Já tem conta? {/* Sem prefetch, pelo mesmo motivo do link "Criar conta" no LoginForm. */}
+          <Link component={NextLink} href="/login" prefetch={false} sx={{ fontWeight: 700 }}>
             Entrar
           </Link>
         </Typography>

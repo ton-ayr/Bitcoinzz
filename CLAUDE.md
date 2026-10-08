@@ -23,8 +23,9 @@ npm run lint
 npm run typecheck
 npm test
 
-# Tudo junto (raiz, exige Docker)
-docker compose up --build
+# Tudo junto (raiz, exige Docker; antes: copiar .env.example para .env e preencher o JWT_SECRET)
+docker compose up --build   # front :3000, API :3333, Mongo :27017 (só 127.0.0.1)
+docker compose down         # para (os dados ficam no volume; `down -v` apaga)
 ```
 
 ## Convenções

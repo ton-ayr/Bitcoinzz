@@ -48,7 +48,7 @@ Versões conferidas no npm em 06/10/2026; as definitivas ficam fixadas nos `pack
 | Camada | Tecnologias |
 |---|---|
 | API | Node 24 · Express 5.2 · TypeScript 6.0.x · Mongoose 9 · Zod 4 · jsonwebtoken · bcryptjs · pino + pino-http · node-cron 4 · Nodemailer · helmet · express-rate-limit · swagger-ui-express · dayjs |
-| Front | Next.js 16 (App Router) · React 19 · MUI 9 + @mui/material-nextjs · MUI X Charts e Date Pickers · TanStack Query 5 · React Hook Form + Zod · Motion · sonner · react-number-format · dayjs |
+| Front | Next.js 16 (App Router) · React 19 · MUI 9 + @mui/material-nextjs · MUI X Charts e Date Pickers · TanStack Query 5 · React Hook Form + Zod · Motion · sonner · dayjs |
 | Qualidade | Vitest · Supertest · mongodb-memory-server · Testing Library · ESLint + typescript-eslint · Prettier |
 | Infra | Docker Compose (dev local) · Render (API) · Vercel (front) · MongoDB Atlas M0 · Brevo |
 
@@ -277,7 +277,7 @@ frontend/src/
 ├── proxy.ts                     # Next 16 (antigo middleware): protege rotas
 ├── features/                    # auth · dashboard · trade · statement
 ├── components/                  # AppShell, UserBadge, StatCard, MoneyField, ConfirmDialog, FocusGroup e demais componentes visuais
-├── lib/                         # http, query-keys, format (Intl pt-BR), money (centavos/satoshis), time, use-now, nav
+├── lib/                         # http, query-keys, format (Intl pt-BR), money (centavos/satoshis), dates (dia em SP), time, use-now, download, nav
 └── theme/                       # tema MUI (tokens + overrides)
 ```
 
@@ -364,7 +364,7 @@ Definidos em `frontend/src/theme/tokens.ts`; o tema MUI fica em `theme.ts`. Esco
 | Ambiente | Front | API | Banco | E-mail | Custo |
 |---|---|---|---|---|---|
 | Local (manual) | `next dev` :3000 | `tsx watch` :3333 | Atlas M0 (database atual) | Console (sem SMTP) | R$ 0 |
-| Local (Docker) | container `web` | container `api` | container `mongo:8` (replica set) | Console ou Brevo | R$ 0 |
+| Local (Docker) | container `web` :3000 | container `api` :3333 | container `mongo:8` (replica set de 1 nó, volume) | Console ou Brevo | R$ 0 |
 | Produção | Vercel Hobby | Render free | Atlas M0 | Brevo free | R$ 0 |
 
 Limites que importam (verificados; ver seção 12):
@@ -410,6 +410,13 @@ Limites que importam (verificados; ver seção 12):
 | D31 | Campo de R$ "estilo app de banco" (dígitos entram pelos centavos), feito no projeto | Digitação livre formatada (`react-number-format`) | Escolha do autor: sem vírgula para errar e sem dependência nova; a regra é uma função pequena e testada (`parseMoneyInput`) | Autor |
 | D32 | Depois de depositar ou comprar, o formulário vira um resumo com o resultado real e atalhos | Toast e voltar ao dashboard; toast e limpar o formulário | Escolha do autor: o usuário vê o que de fato aconteceu (BTC comprado, cotação usada, novo saldo) | Autor |
 | D33 | Diálogo de confirmação só na compra; atalhos fixos no depósito e % do saldo na compra | Confirmar as duas; sem atalhos | Escolha do autor: a compra depende da cotação e gasta saldo; o depósito é simulado e direto | Autor |
+| D34 | Prévia da venda mostra o plano FIFO (o que é vendido inteiro, em parte e a sobra reinvestida) | Só o BTC estimado e um texto | Escolha do autor: a regra fica visível antes de confirmar. A função (`salePreview`) espelha a da API e é testada com os mesmos casos | Autor |
+| D35 | Datas do extrato com MUI X Date Pickers (MIT), em pt-BR | `<input type="date">` nativo | Escolha do autor: calendário no tema e digitação DD/MM/AAAA. O provider fica só no filtro do extrato, para o código carregar apenas nessa tela | Autor |
+| D36 | Extrato em lista agrupada por dia, estilo app de banco | Tabela no desktop + cards no celular | Escolha do autor: um componente só para todas as larguras, com valor em destaque e sinal de entrada/saída | Autor |
+| D37 | Extras do extrato: totais do período, filtro por tipo e CSV gerado no navegador | Sem extras | Escolha do autor. O CSV usa ";" e vírgula decimal (Excel em português) e exporta o que está na tela (respeita o filtro) | Autor |
+| D38 | No Docker Compose, o `JWT_SECRET` é obrigatório num `.env` na raiz (sem ele, o compose recusa subir) | Segredo padrão "só local" no compose; gerado na primeira subida | Escolha do autor: seguro por padrão, nenhum segredo conhecido no repositório. Custo: um passo a mais (copiar o `.env.example` e gerar o segredo) | Autor |
+| D39 | Docker só no modo produção (imagens multi-stage, iguais ao deploy) | Também um modo de desenvolvimento com hot reload | Escolha do autor: menos arquivos; para desenvolver, `npm run dev` continua | Autor |
+| D40 | Banco do Docker começa vazio | Conta demo por comando ou automática | Escolha do autor: quem avalia cria a própria conta; o gráfico já aparece pelo backfill | Autor |
 
 ## 12. Verificações de documentação oficial
 
@@ -463,6 +470,13 @@ Regra do projeto: antes de cada integração, consultar a fonte oficial atual e 
 
 | 07/10/2026 | Campo de R$ com foco automático (Fase 14) | Prática (Chrome headless + teste com o cursor no início) | Com "R$ 0,00" no campo, o foco automático pode deixar o cursor no **início**, e o 1º dígito entrava antes dos zeros ("4" → R$ 40,00). Mover o cursor via `onSelect` do React não foi confiável na página pré-renderizada (o foco pode acontecer antes da hidratação, e o React não o vê). Solução: campo **vazio** no zero, com "R$ 0,00" como placeholder |
 
+| 08/10/2026 | MUI X Date Pickers 9.15 (Fase 15) | [mui.com: getting started](https://mui.com/x/react-date-pickers/getting-started/) · [localization](https://mui.com/x/react-date-pickers/localization/) · [date picker](https://mui.com/x/react-date-pickers/date-picker/) · `npm view` | Pacote `@mui/x-date-pickers` com licença **MIT** (os componentes Pro ficam em outro pacote); aceita MUI 9, React 19 e dayjs ≥ 1.10.7. Adapter em `@mui/x-date-pickers/AdapterDayjs`; pt-BR com `ptBR` de `@mui/x-date-pickers/locales` (`localeText`) + `adapterLocale="pt-br"` e `import 'dayjs/locale/pt-br'`; `value`/`onChange` com objetos dayjs; `minDate`/`maxDate`; `slotProps.textField`; desktop ou celular decidido por `@media (pointer: fine)`. `npm audit --omit=dev`: 0 vulnerabilidades |
+| 08/10/2026 | Tema dos Date Pickers v9 (Fase 15) | Tipos do pacote (`themeAugmentation`) | No v9 a opção `enableAccessibleFieldDOMStructure` não existe mais: o campo é sempre o `PickersTextField`, com o próprio `MuiPickersOutlinedInput` (o estilo do `MuiOutlinedInput` não se aplica sozinho). O popup é `MuiPickerPopper` (singular). Com `import type {} from '@mui/x-date-pickers/themeAugmentation'`, o TypeScript acusa nomes errados no tema |
+
+| 08/10/2026 | Docker Desktop para Windows (Fase 16) | [docs.docker.com: install on Windows](https://docs.docker.com/desktop/setup/install/windows-install/) · [Docker Desktop license](https://docs.docker.com/subscription/desktop-license/) | Requisitos: Windows 11 64-bit 23H2 (build 22631) ou mais novo, WSL ≥ 2.1.5, 8 GB de RAM e virtualização ativa. Backend recomendado: WSL 2; instalação por usuário, sem reiniciar e sem entrar no grupo `docker-users`. **Grátis** para uso pessoal, educação, open source não comercial e empresas com menos de 250 funcionários **e** menos de US$ 10 milhões por ano: o projeto se encaixa (custo zero). Máquina do autor conferida: build 26300, 15,8 GB, WSL 2.7.12, hypervisor ativo |
+| 08/10/2026 | Next.js standalone em Docker (Fase 16) | [nextjs.org: output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output) | `output: 'standalone'` gera `.next/standalone/server.js`; ele **não** serve `public` nem `.next/static` sozinho (é preciso copiá-los para a imagem); `PORT` e `HOSTNAME` definem onde escuta (`HOSTNAME=0.0.0.0` no container) |
+| 08/10/2026 | Imagem oficial `mongo` (Fase 16) | [hub.docker.com/_/mongo](https://hub.docker.com/_/mongo) | Inclui o `mongosh`; dados em `/data/db` (volume). Replica set não é configurado pela imagem: o compose passa `--replSet rs0` e o healthcheck faz o `rs.initiate` (host `mongo:27017`; do Windows, use `directConnection=true` no Compass) |
+| 08/10/2026 | Host da requisição no Next standalone (Fase 16) | Teste prático nos containers | Com `HOSTNAME=0.0.0.0`, `request.url` nos Route Handlers vira `http://0.0.0.0:3000/...`, diferente do `Origin` do navegador (`localhost:3000`). A checagem de origem passou a usar `X-Forwarded-Host`/`Host`. Os redirecionamentos do `proxy.ts` saem relativos (`/login?next=...`) e não são afetados. O cookie `Secure` funciona em `http://localhost` (o navegador trata localhost como contexto seguro) |
+
 **Pendentes**, a conferir antes da fase indicada:
-- MUI X Date Pickers (Fase 15).
 - Configuração de deploy no Render e na Vercel (Fase 17).

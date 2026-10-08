@@ -1,0 +1,82 @@
+# Bitcoinzz completo na sua máquina: MongoDB + API + front.
+#
+#   1. cp .env.example .env    (e preencha o JWT_SECRET)
+#   2. docker compose up --build
+#   3. Abra http://localhost:3000   (API e Swagger em http://localhost:3333/docs)
+#
+# As portas ficam presas ao 127.0.0.1: só este computador acessa (nada fica exposto na rede).
+
+name: bitcoinzz
+
+services:
+  mongo:
+    image: mongo:8
+    # As transações do MongoDB exigem um replica set (o Atlas já é um). Aqui ele tem 1 nó só.
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '127.0.0.1:27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Na primeira vez, cria o replica set; depois, só fica "saudável" quando já aceita escrita.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - >-
+          try { rs.status() } catch (e) {
+          rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }) }
+          if (!db.hello().isWritablePrimary) quit(1)
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+    restart: on-failure
+
+  api:
+    build: ./backend
+    environment:
+      PORT: 3333
+      MONGODB_URI: mongodb://mongo:27017/bitcoinzz?replicaSet=rs0
+      # Obrigatório: vem do .env da raiz (veja .env.example). Sem ele, o compose nem sobe.
+      JWT_SECRET: ${JWT_SECRET:?Defina o JWT_SECRET no arquivo .env da raiz (copie o .env.example)}
+      CORS_ORIGIN: http://localhost:3000
+      # E-mail real é opcional: sem SMTP_HOST, os e-mails aparecem em `docker compose logs api`.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-Bitcoinzz <no-reply@bitcoinzz.dev>}
+    ports:
+      - '127.0.0.1:3333:3333'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3333/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    restart: on-failure
+
+  web:
+    build: ./frontend
+    environment:
+      # Endereço da API dentro da rede do compose (o navegador nunca vê).
+      API_URL: http://api:3333
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  # Os dados do MongoDB sobrevivem a `docker compose down` (só somem com `down -v`).
+  mongo-data:

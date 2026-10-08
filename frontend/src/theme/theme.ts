@@ -1,6 +1,8 @@
 'use client';
 
 import { alpha, createTheme, type CSSObject } from '@mui/material/styles';
+// Só tipos: ensina o `createTheme` a aceitar os componentes do MUI X Date Pickers.
+import type {} from '@mui/x-date-pickers/themeAugmentation';
 import { colors, glass, glow, gradients, motionTokens } from './tokens';
 
 const transition = (properties: string[]) =>
@@ -20,6 +22,17 @@ export const glassSurface: CSSObject = {
     backgroundColor: glass.fallback,
   },
 };
+
+/** Visual dos campos com contorno (texto e data): borda sutil, anel blurple no foco. */
+const outlinedInput = (outline: string): CSSObject => ({
+  borderRadius: 12,
+  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  transition: transition(['box-shadow', 'background-color']),
+  [`& ${outline}`]: { borderColor: colors.borderStrong },
+  [`&:hover ${outline}`]: { borderColor: alpha(colors.blurple, 0.6) },
+  '&.Mui-focused': { boxShadow: glow.focusRing, backgroundColor: 'rgba(255,255,255,0.05)' },
+  [`&.Mui-focused ${outline}`]: { borderColor: colors.blurple, borderWidth: 1 },
+});
 
 export const theme = createTheme({
   palette: {
@@ -179,20 +192,12 @@ export const theme = createTheme({
     },
 
     MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          borderRadius: 12,
-          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-          transition: transition(['box-shadow', 'background-color']),
-          '& .MuiOutlinedInput-notchedOutline': { borderColor: colors.borderStrong },
-          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: alpha(colors.blurple, 0.6) },
-          '&.Mui-focused': { boxShadow: glow.focusRing, backgroundColor: 'rgba(255,255,255,0.05)' },
-          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: colors.blurple,
-            borderWidth: 1,
-          },
-        },
-      },
+      styleOverrides: { root: outlinedInput('.MuiOutlinedInput-notchedOutline') },
+    },
+
+    // O campo de data do MUI X (v9) não é um OutlinedInput: tem o próprio componente.
+    MuiPickersOutlinedInput: {
+      styleOverrides: { root: outlinedInput('.MuiPickersOutlinedInput-notchedOutline') },
     },
 
     MuiChip: {
@@ -238,6 +243,13 @@ export const theme = createTheme({
     MuiDialog: {
       styleOverrides: {
         paper: { ...glassSurface, borderRadius: 20 },
+      },
+    },
+
+    // Calendário flutuante: mais opaco que o vidro, para os dias não disputarem com o fundo.
+    MuiPickerPopper: {
+      styleOverrides: {
+        paper: { backgroundColor: alpha(colors.surfaceRaised, 0.94), borderRadius: 16 },
       },
     },
 

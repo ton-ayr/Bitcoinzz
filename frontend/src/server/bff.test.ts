@@ -151,4 +151,27 @@ describe('isSameOrigin (defesa contra CSRF)', () => {
     expect(isSameOrigin(post('https://site-malicioso.com'))).toBe(false);
     expect(isSameOrigin(post('lixo'))).toBe(false);
   });
+
+  // Bug achado no Docker: com HOSTNAME=0.0.0.0, a URL interna é http://0.0.0.0:3000, mas o
+  // navegador acessou http://localhost:3000 (cabeçalho Host). Vale o host que o navegador usou.
+  const container = (origin: string, headers: Record<string, string>) =>
+    new Request('http://0.0.0.0:3000/api/auth/login', {
+      method: 'POST',
+      headers: { origin, ...headers },
+    });
+
+  it('compara com o host que o navegador acessou (Host ou X-Forwarded-Host)', () => {
+    expect(isSameOrigin(container('http://localhost:3000', { host: 'localhost:3000' }))).toBe(true);
+    expect(
+      isSameOrigin(
+        container('https://app.exemplo.com', {
+          host: '10.0.0.5:3000',
+          'x-forwarded-host': 'app.exemplo.com, proxy.interno',
+        }),
+      ),
+    ).toBe(true);
+    expect(isSameOrigin(container('https://site-malicioso.com', { host: 'localhost:3000' }))).toBe(
+      false,
+    );
+  });
 });
