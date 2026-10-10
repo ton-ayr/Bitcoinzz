@@ -18,7 +18,7 @@ flowchart LR
   end
   DB[("MongoDB Atlas")]
   MB["Mercado Bitcoin<br/>API pública v4"]
-  MAIL["Brevo (SMTP)"]
+  MAIL["Mailjet (API HTTP)"]
 
   UI -- "/api/* (cookie httpOnly)" --> WEB
   WEB -- "Authorization: Bearer" --> API
@@ -116,7 +116,7 @@ sequenceDiagram
   participant API as API
   participant MB as Mercado Bitcoin
   participant DB as MongoDB
-  participant MAIL as Brevo
+  participant MAIL as Mailjet
 
   C->>UI: digita R$ 600, revisa a prévia FIFO e confirma
   UI->>BFF: POST /api/btc/sell { amount: 600 } (cookie)
@@ -138,7 +138,7 @@ sequenceDiagram
 | Mercado Bitcoin fora do ar | 503 | "Cotação indisponível" com "Tentar de novo" |
 | API fora do ar ou dormindo | BFF espera até ~90 s; depois, 503/504 | "Acordando o servidor…" e, se falhar, estados de erro com "Tentar de novo" |
 | Escrita simultânea | Transação refeita automaticamente | Nada |
-| Falha no SMTP | Logada; a operação já foi concluída | Nada |
+| Falha no envio do e-mail | Logada; a operação já foi concluída | Nada |
 
 ## Histórico de cotações
 
@@ -206,7 +206,7 @@ Serviços de terceiros mudam limites, preços e APIs. Ao mexer em uma integraç�
 |---|---|---|---|---|
 | Mercado Bitcoin (API v4) | `GET /tickers?symbols=BTC-BRL` (cotação) e `GET /candles` (backfill) | 1 req/s por endpoint; valores vêm como texto; só há candle em minutos com negociação | [api v4](https://api.mercadobitcoin.net/api/v4/docs) | 06/10/2026 |
 | MongoDB Atlas (M0) | Banco de produção | 0,5 GB; pausa após 30 dias sem uso; lista de IPs aceita faixas CIDR | [limites do M0](https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/) · [lista de IPs](https://www.mongodb.com/docs/atlas/security/ip-access-list/) | 08/10/2026 |
-| Render (free) | API (`render.yaml`) | Dorme após 15 min sem tráfego (~1 min para acordar); 750 h/mês por conta; IPs de saída fixos por região e compartilhados | [plano free](https://render.com/docs/free) · [IPs de saída](https://render.com/docs/outbound-ip-addresses) · [Blueprint](https://render.com/docs/blueprint-spec) | 08/10/2026 |
+| Render (free) | API (`render.yaml`) | Dorme após 15 min sem tráfego (~1 min para acordar); 750 h/mês por conta; IPs de saída fixos por região e compartilhados; **portas de SMTP (25, 465, 587) bloqueadas**, por isso o e-mail sai por API HTTP | [plano free](https://render.com/docs/free) · [IPs de saída](https://render.com/docs/outbound-ip-addresses) · [Blueprint](https://render.com/docs/blueprint-spec) | 09/10/2026 |
 | Vercel (Hobby) | Admin (Root Directory `frontend`) | Uso pessoal e não comercial; funções até 300 s | [plano Hobby](https://vercel.com/docs/plans/hobby) | 08/10/2026 |
-| Brevo (free) | E-mails por SMTP (`smtp-relay.brevo.com:587`) | 300 e-mails/dia; usar a **SMTP key** (não a API key); remetente verificado; sem domínio próprio pode cair no spam | [SMTP](https://developers.brevo.com/docs/smtp-integration) | 08/10/2026 |
+| Mailjet (free) | E-mails pela Send API v3.1 (`POST https://api.mailjet.com/v3.1/send`, autenticação Basic com a chave pública e a privada) | 6.000 e-mails/mês e 200/dia, sem prazo; remetente validado por e-mail (não exige domínio próprio); sem domínio próprio pode cair no spam; erros 400/401/403 com `ErrorMessage` | [preços](https://www.mailjet.com/pricing/) · [Send API v3.1](https://dev.mailjet.com/email/guides/send-api-v31/) · [validação de remetente](https://dev.mailjet.com/docs/email-api/senders-domains/sender-validation) | 09/10/2026 |
 | GitHub Actions | CI (lint, tipos, testes e build) | Grátis para repositório público; `actions/checkout@v7` e `actions/setup-node@v7` | [setup-node](https://github.com/actions/setup-node) | 08/10/2026 |

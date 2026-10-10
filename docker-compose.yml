@@ -42,12 +42,10 @@ services:
       # Obrigatório: vem do .env da raiz (veja .env.example). Sem ele, o compose nem sobe.
       JWT_SECRET: ${JWT_SECRET:?Defina o JWT_SECRET no arquivo .env da raiz (copie o .env.example)}
       CORS_ORIGIN: http://localhost:3000
-      # E-mail real é opcional: sem SMTP_HOST, os e-mails aparecem em `docker compose logs api`.
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      MAIL_FROM: ${MAIL_FROM:-Bitcoinzz <no-reply@bitcoinzz.dev>}
+      # E-mail real é opcional: sem as chaves da Mailjet, os e-mails aparecem em `docker compose logs api`.
+      MAILJET_API_KEY: ${MAILJET_API_KEY:-}
+      MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY:-}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:-}
     ports:
       - '127.0.0.1:3333:3333'
     depends_on:

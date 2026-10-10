@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Variável opcional: vazia ("SMTP_HOST=") conta como não definida.
+// Variável opcional: vazia ("MAILJET_API_KEY=") conta como não definida.
 const optionalString = z
   .string()
   .trim()
@@ -31,20 +31,24 @@ const envSchema = z
     QUOTE_API_URL: z.url().default('https://api.mercadobitcoin.net/api/v4'),
     QUOTE_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).max(60).default(10),
 
-    // E-mail. Sem SMTP_HOST, os e-mails são apenas exibidos no log (modo desenvolvimento).
-    SMTP_HOST: optionalString,
-    SMTP_PORT: z.coerce.number().int().positive().default(587),
-    SMTP_USER: optionalString,
-    SMTP_PASS: optionalString,
-    // No Brevo, precisa ser um remetente verificado na conta.
-    MAIL_FROM: z.string().default('Bitcoinzz <no-reply@bitcoinzz.dev>'),
+    // E-mail pela API HTTP da Mailjet. Sem as chaves, os e-mails são apenas exibidos no log.
+    MAILJET_API_KEY: optionalString,
+    MAILJET_SECRET_KEY: optionalString,
+    // Precisa ser um remetente validado na conta da Mailjet.
+    MAIL_FROM_EMAIL: optionalString.pipe(
+      z.email('MAIL_FROM_EMAIL deve ser um e-mail válido').optional(),
+    ),
+    MAIL_FROM_NAME: z.string().trim().min(1).default('Bitcoinzz'),
   })
   .superRefine((env, ctx) => {
-    if (env.SMTP_HOST && (!env.SMTP_USER || !env.SMTP_PASS)) {
+    const mailjet = [env.MAILJET_API_KEY, env.MAILJET_SECRET_KEY, env.MAIL_FROM_EMAIL];
+    // Ou tudo configurado (envio real), ou nada (log): metade configurada é erro de digitação.
+    if (mailjet.some(Boolean) && !mailjet.every(Boolean)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['SMTP_USER'],
-        message: 'SMTP_USER e SMTP_PASS são obrigatórios quando SMTP_HOST está definido',
+        path: ['MAILJET_API_KEY'],
+        message:
+          'MAILJET_API_KEY, MAILJET_SECRET_KEY e MAIL_FROM_EMAIL precisam ser preenchidas juntas',
       });
     }
   });

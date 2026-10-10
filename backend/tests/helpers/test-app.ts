@@ -20,7 +20,7 @@ export function createTestApp(overrides: Partial<ContainerDependencies> = {}) {
         jwtSecret: TEST_JWT_SECRET,
         jwtExpiresIn: '8h',
         logger: silentLogger,
-        mail: { from: 'Bitcoinzz <teste@bitcoinzz.dev>' },
+        mail: {},
         quote: { apiUrl: 'http://cotacao.invalida', cacheTtlSeconds: 10 },
       },
       {

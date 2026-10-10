@@ -106,7 +106,7 @@ export function createContainer(
     candleProvider: marketClient,
     priceSnapshotRepository: new MongoosePriceSnapshotRepository(),
     ...overrides,
-    // Criado só se não veio um fake (evita o aviso de "SMTP não configurado" nos testes).
+    // Criado só se não veio um fake (evita o aviso de "Mailjet não configurada" nos testes).
     mailer: overrides.mailer ?? createMailer(settings.mail, logger),
   };
 

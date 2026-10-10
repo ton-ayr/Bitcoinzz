@@ -19,6 +19,32 @@ describe('loadEnv', () => {
     expect(env.CORS_ORIGIN).toEqual(['http://a.com', 'https://b.com']);
   });
 
+  it('Mailjet: tudo vazio = e-mails no log; tudo preenchido = envio real', () => {
+    expect(loadEnv({ ...validEnv, MAILJET_API_KEY: '' }).MAILJET_API_KEY).toBeUndefined();
+    const env = loadEnv({
+      ...validEnv,
+      MAILJET_API_KEY: 'chave',
+      MAILJET_SECRET_KEY: 'segredo',
+      MAIL_FROM_EMAIL: 'eu@gmail.com',
+    });
+    expect(env.MAIL_FROM_EMAIL).toBe('eu@gmail.com');
+    expect(env.MAIL_FROM_NAME).toBe('Bitcoinzz');
+  });
+
+  it('Mailjet configurada pela metade falha na subida', () => {
+    expect(() => loadEnv({ ...validEnv, MAILJET_API_KEY: 'chave' })).toThrow(
+      /precisam ser preenchidas juntas/,
+    );
+    expect(() =>
+      loadEnv({
+        ...validEnv,
+        MAILJET_API_KEY: 'chave',
+        MAILJET_SECRET_KEY: 'segredo',
+        MAIL_FROM_EMAIL: 'nao-e-email',
+      }),
+    ).toThrow(/MAIL_FROM_EMAIL deve ser um e-mail válido/);
+  });
+
   it('falha com mensagem clara quando falta variável ou o segredo é curto', () => {
     expect(() => loadEnv({ JWT_SECRET: 'curto' })).toThrow(/MONGODB_URI[\s\S]*JWT_SECRET/);
   });

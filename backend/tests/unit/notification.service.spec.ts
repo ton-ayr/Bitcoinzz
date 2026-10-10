@@ -4,7 +4,7 @@ import { ConsoleMailer } from '../../src/modules/notifications/console.mailer.js
 import { depositEmail } from '../../src/modules/notifications/mail.templates.js';
 import type { Mailer } from '../../src/modules/notifications/mailer.js';
 import { NotificationService } from '../../src/modules/notifications/notification.service.js';
-import { SmtpMailer } from '../../src/modules/notifications/smtp.mailer.js';
+import { MailjetMailer } from '../../src/modules/notifications/mailjet.mailer.js';
 import { formatBRL, formatBTC } from '../../src/shared/format.js';
 import { FakeMailer } from '../helpers/fakes.js';
 import { silentLogger } from '../helpers/test-app.js';
@@ -49,7 +49,7 @@ describe('NotificationService', () => {
   });
 
   it('falha no envio é logada e não vira erro para quem chamou', async () => {
-    const failingMailer: Mailer = { send: () => Promise.reject(new Error('SMTP fora do ar')) };
+    const failingMailer: Mailer = { send: () => Promise.reject(new Error('Mailjet fora do ar')) };
     const logger = {
       ...silentLogger,
       info: vi.fn(),
@@ -63,15 +63,15 @@ describe('NotificationService', () => {
 });
 
 describe('createMailer', () => {
-  it('sem SMTP → console', () => {
-    expect(createMailer({ from: 'x@y.com' }, silentLogger)).toBeInstanceOf(ConsoleMailer);
+  it('sem Mailjet → console', () => {
+    expect(createMailer({}, silentLogger)).toBeInstanceOf(ConsoleMailer);
   });
 
-  it('com SMTP → envio real', () => {
+  it('com Mailjet → envio real', () => {
     const mailer = createMailer(
-      { from: 'x@y.com', smtp: { host: 'smtp-relay.brevo.com', port: 587, user: 'u', pass: 'p' } },
+      { mailjet: { apiKey: 'k', secretKey: 's', fromEmail: 'x@y.com', fromName: 'Bitcoinzz' } },
       silentLogger,
     );
-    expect(mailer).toBeInstanceOf(SmtpMailer);
+    expect(mailer).toBeInstanceOf(MailjetMailer);
   });
 });

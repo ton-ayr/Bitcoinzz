@@ -33,14 +33,13 @@ services:
       # Segredo aleatório de 256 bits gerado pelo Render (ninguém precisa criar nem copiar).
       - key: JWT_SECRET
         generateValue: true
-      # E-mail pelo SMTP do Brevo (credenciais preenchidas no painel).
-      - key: SMTP_HOST
-        value: smtp-relay.brevo.com
-      - key: SMTP_PORT
-        value: '587'
-      - key: SMTP_USER
+      # E-mail pela API HTTP da Mailjet (o plano free do Render bloqueia as portas de SMTP).
+      - key: MAILJET_API_KEY
         sync: false
-      - key: SMTP_PASS
+      - key: MAILJET_SECRET_KEY
         sync: false
-      - key: MAIL_FROM
+      # Remetente validado na conta da Mailjet.
+      - key: MAIL_FROM_EMAIL
         sync: false
+      - key: MAIL_FROM_NAME
+        value: Bitcoinzz

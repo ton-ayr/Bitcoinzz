@@ -1,18 +1,17 @@
 import type { Logger } from '../../config/logger.js';
 import { ConsoleMailer } from './console.mailer.js';
 import type { Mailer } from './mailer.js';
-import { SmtpMailer } from './smtp.mailer.js';
+import { MailjetMailer, type MailjetSettings } from './mailjet.mailer.js';
 
 export interface MailSettings {
-  from: string;
-  smtp?: { host: string; port: number; user: string; pass: string };
+  mailjet?: MailjetSettings;
 }
 
-/** Escolhe a implementação: SMTP se estiver configurado; senão, console. */
+/** Escolhe a implementação: Mailjet se estiver configurada; senão, console. */
 export function createMailer(settings: MailSettings, logger: Logger): Mailer {
-  if (settings.smtp) {
-    return new SmtpMailer({ ...settings.smtp, from: settings.from });
+  if (settings.mailjet) {
+    return new MailjetMailer(settings.mailjet);
   }
-  logger.warn('SMTP não configurado: os e-mails serão apenas exibidos no log');
+  logger.warn('Mailjet não configurada: os e-mails serão apenas exibidos no log');
   return new ConsoleMailer(logger);
 }

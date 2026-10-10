@@ -32,10 +32,14 @@ const container = createContainer({
   logger,
   quote: { apiUrl: env.QUOTE_API_URL, cacheTtlSeconds: env.QUOTE_CACHE_TTL_SECONDS },
   mail: {
-    from: env.MAIL_FROM,
-    smtp:
-      env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS
-        ? { host: env.SMTP_HOST, port: env.SMTP_PORT, user: env.SMTP_USER, pass: env.SMTP_PASS }
+    mailjet:
+      env.MAILJET_API_KEY && env.MAILJET_SECRET_KEY && env.MAIL_FROM_EMAIL
+        ? {
+            apiKey: env.MAILJET_API_KEY,
+            secretKey: env.MAILJET_SECRET_KEY,
+            fromEmail: env.MAIL_FROM_EMAIL,
+            fromName: env.MAIL_FROM_NAME,
+          }
         : undefined,
   },
 });

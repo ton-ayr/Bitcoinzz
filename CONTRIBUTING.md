@@ -52,7 +52,7 @@ Os mesmos nas duas pastas (`backend/` e `frontend/`):
 
 - Mensagens no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat(api): ...`, `fix(web): ...`, `docs: ...`, `test: ...`, `chore: ...`.
 - Antes de abrir o PR, nas duas pastas: `npm run lint && npm run typecheck && npm test && npm run build`. O CI repete isso, e o Render só publica a API com ele verde.
-- Mexeu numa integração externa (Mercado Bitcoin, Atlas, Render, Vercel, Brevo)? Confira a documentação oficial atual e atualize a tabela [Integrações externas](docs/architecture.md#integrações-externas).
+- Mexeu numa integração externa (Mercado Bitcoin, Atlas, Render, Vercel, Mailjet)? Confira a documentação oficial atual e atualize a tabela [Integrações externas](docs/architecture.md#integrações-externas).
 - Mudanças de custo ou de segurança, ou difíceis de desfazer, precisam de alinhamento antes da implementação. O projeto só usa planos gratuitos sem prazo.
 
 ## Dependências

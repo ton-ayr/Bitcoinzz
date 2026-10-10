@@ -56,7 +56,7 @@ docker compose up --build
 
 - Admin: http://localhost:3000 (crie uma conta e use).
 - API e Swagger: http://localhost:3333/docs
-- Os e-mails aparecem no log da API (`docker compose logs api`). Para enviar e-mails de verdade, preencha o SMTP do Brevo no `.env`.
+- Os e-mails aparecem no log da API (`docker compose logs api`). Para enviar e-mails de verdade, preencha as chaves da Mailjet no `.env`.
 - Para parar: `docker compose down` (os dados ficam guardados; `docker compose down -v` apaga tudo).
 
 O compose sobe três containers: MongoDB 8 (replica set, necessário para as transações), a API e o front. As portas ficam presas ao `127.0.0.1`.
@@ -90,7 +90,7 @@ npm run dev
 | API | `JWT_SECRET` | sim | Assina os logins; mínimo de 32 caracteres |
 | API | `JWT_EXPIRES_IN` | não (`8h`) | Duração da sessão |
 | API | `PORT` | não (`3333`) | Porta da API |
-| API | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | não | E-mail real pelo Brevo; sem `SMTP_HOST`, os e-mails vão para o log |
+| API | `MAILJET_API_KEY`, `MAILJET_SECRET_KEY`, `MAIL_FROM_EMAIL`, `MAIL_FROM_NAME` | não | E-mail real pela Mailjet (as três primeiras juntas); sem elas, os e-mails vão para o log |
 | API | `QUOTE_API_URL`, `QUOTE_CACHE_TTL_SECONDS` | não | API do Mercado Bitcoin e tempo de cache da cotação |
 | Admin | `API_URL` | sim | Endereço da API, usado só no servidor do Next |
 
@@ -152,7 +152,7 @@ Navegador ──▶ Admin Next.js (Vercel) ──▶ API Express (Render) ──
               BFF: cookie httpOnly         routes → controller        transações
               e allowlist de rotas         → service → repository
                                                 │
-                                   Mercado Bitcoin (cotação) · Brevo (e-mail)
+                                   Mercado Bitcoin (cotação) · Mailjet (e-mail)
 ```
 
 - **API em camadas:** `routes → controller → service → repository`. Só o repository conhece o Mongoose; os services recebem as dependências pelo construtor (montadas em `container.ts`), o que permite testá-los com fakes.
@@ -166,7 +166,7 @@ frontend/   Admin Next.js (src/app, src/features, src/components, src/server = B
 docs/       arquitetura e guia de deploy
 ```
 
-**Stack:** Node.js 24 · TypeScript · Express 5 · MongoDB/Mongoose · Zod · JWT · bcrypt · pino · node-cron · Nodemailer · Swagger · Next.js 16 (App Router, Cache Components) · React 19 · Material UI 9 + MUI X (gráfico e calendário) · TanStack Query · React Hook Form · Motion · Vitest · Testing Library · Docker.
+**Stack:** Node.js 24 · TypeScript · Express 5 · MongoDB/Mongoose · Zod · JWT · bcrypt · pino · node-cron · Mailjet · Swagger · Next.js 16 (App Router, Cache Components) · React 19 · Material UI 9 + MUI X (gráfico e calendário) · TanStack Query · React Hook Form · Motion · Vitest · Testing Library · Docker.
 
 ## Segurança
 
@@ -182,13 +182,15 @@ docs/       arquitetura e guia de deploy
 | Admin | Vercel | Hobby (grátis, uso não comercial) |
 | API | Render | Free (dorme após 15 min sem uso) |
 | Banco | MongoDB Atlas | M0 (grátis, 0,5 GB) |
-| E-mail | Brevo | Free (300 e-mails/dia) |
+| E-mail | Mailjet | Free (6.000 e-mails/mês, 200/dia) |
 
 **Configuração:**
-- **API (Render):** criada pelo [`render.yaml`](render.yaml) (New → Blueprint). O `JWT_SECRET` é gerado pelo Render; `MONGODB_URI`, `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM` são preenchidos no painel. O deploy só acontece com mudanças em `backend/` e com o CI verde.
+- **API (Render):** criada pelo [`render.yaml`](render.yaml) (New → Blueprint). O `JWT_SECRET` é gerado pelo Render; `MONGODB_URI`, `MAILJET_API_KEY`, `MAILJET_SECRET_KEY` e `MAIL_FROM_EMAIL` são preenchidos no painel. O deploy só acontece com mudanças em `backend/` e com o CI verde.
 - **Banco (Atlas):** em Network Access, liberar só as faixas de IP de saída do Render (serviço → Connect → Outbound). Se o Render mudar as faixas, a API perde a conexão com o banco até a lista ser atualizada.
 - **Admin (Vercel):** Root Directory `frontend` e a variável `API_URL` com a URL do Render (com https e sem barra no final).
-- **E-mail (Brevo):** remetente verificado e a **SMTP key** (não a API key).
+- **E-mail (Mailjet):** remetente validado e as chaves da API. O envio é por HTTP porque o plano free do Render bloqueia as portas de SMTP.
+
+Passo a passo completo em [deploy.md](deploy.md).
 
 **Avisos do plano gratuito:**
 - O primeiro acesso depois de um tempo parado leva cerca de 1 min (a API acorda). A tela de login já começa a acordá-la.
@@ -198,6 +200,7 @@ docs/       arquitetura e guia de deploy
 ## Documentação do projeto
 
 - [Arquitetura](docs/architecture.md): componentes, dados, fluxos, segurança, decisões e integrações.
+- [Deploy](deploy.md): passo a passo de Mailjet, Atlas, Render e Vercel.
 - [Contribuindo](CONTRIBUTING.md): ambiente, convenções, testes e fluxo de commits.
 
 ## Licença
