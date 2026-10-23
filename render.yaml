@@ -17,8 +17,9 @@ services:
     # Só publica depois que o CI (GitHub Actions) passar.
     autoDeployTrigger: checksPass
     # Mudanças só no front (ou na documentação) não geram deploy da API.
+    # Caminhos a partir da raiz do repositório (mesmo com rootDir); a chave é "paths".
     buildFilter:
-      include:
+      paths:
         - backend/**
         - .nvmrc
         - render.yaml
