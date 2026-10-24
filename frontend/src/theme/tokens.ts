@@ -13,6 +13,8 @@ export const colors = {
   blurpleLight: '#7983F5',
   blurpleDark: '#4752C4',
   violet: '#9B59F6',
+  // Só nas manchas de luz do fundo animado.
+  blue: '#2B6CF6',
 
   success: '#23A55A',
   error: '#F23F43',

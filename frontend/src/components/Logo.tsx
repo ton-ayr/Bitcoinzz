@@ -1,7 +1,8 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import { gradients } from '@/theme/tokens';
+import { colors, gradients } from '@/theme/tokens';
 
 /** Marca: selo "₿" com o gradiente blurple + nome. */
 export function Logo({ size = 40 }: { size?: number }) {
@@ -19,7 +20,7 @@ export function Logo({ size = 40 }: { size?: number }) {
           fontWeight: 800,
           fontSize: size * 0.55,
           color: '#fff',
-          boxShadow: '0 8px 24px -6px rgba(88,101,242,0.6)',
+          boxShadow: `0 8px 24px -6px ${alpha(colors.blurple, 0.6)}`,
         }}
       >
         ₿

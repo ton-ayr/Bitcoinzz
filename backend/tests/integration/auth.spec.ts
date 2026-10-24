@@ -1,12 +1,13 @@
 import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BcryptPasswordHasher } from '../../src/modules/auth/password-hasher.js';
 import { JwtTokenService } from '../../src/modules/auth/token-service.js';
 import { UserModel } from '../../src/modules/users/user.model.js';
 import { createAuthenticate, getUserId } from '../../src/shared/http/authenticate.js';
 import { createErrorHandler } from '../../src/shared/http/error-handler.js';
 import { useTestDatabase } from '../helpers/database.js';
+import { FakeMailer } from '../helpers/fakes.js';
 import { createTestApp, silentLogger, TEST_JWT_SECRET } from '../helpers/test-app.js';
 
 useTestDatabase();
@@ -31,6 +32,17 @@ describe('POST /account', () => {
     expect(stored?.passwordHash).toMatch(/^\$2[aby]\$/); // formato de hash bcrypt
     expect(stored?.passwordHash).not.toContain(fulano.password);
     expect(stored?.balanceCents).toBe(0);
+  });
+
+  it('201: envia o e-mail de boas-vindas', async () => {
+    const mailer = new FakeMailer();
+    await request(createTestApp({ mailer })).post('/account').send(fulano).expect(201);
+
+    await vi.waitFor(() => expect(mailer.sent).toHaveLength(1));
+    expect(mailer.sent[0]).toMatchObject({
+      to: fulano.email,
+      subject: 'Sua conta no Bitcoinzz foi criada',
+    });
   });
 
   it('normaliza o e-mail (espaços e maiúsculas)', async () => {

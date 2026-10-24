@@ -69,8 +69,9 @@ describe('rotas da conta', () => {
 
   it('envia o e-mail com o valor depositado', async () => {
     await request(app).post('/account/deposit').set('Authorization', auth).send({ amount: 200 });
-    await vi.waitFor(() => expect(mailer.sent).toHaveLength(1));
-    expect(mailer.sent[0]).toMatchObject({
+    // O primeiro é o de boas-vindas, enviado no cadastro.
+    await vi.waitFor(() => expect(mailer.sent).toHaveLength(2));
+    expect(mailer.sent[1]).toMatchObject({
       to: fulano.email,
       subject: 'Depósito de R$ 200,00 confirmado',
     });
@@ -123,6 +124,7 @@ describe('transação do depósito (tudo ou nada)', () => {
     expect(response.status).toBe(500);
     const user = await UserModel.findOne({ email: fulano.email }).lean();
     expect(user?.balanceCents).toBe(0); // o $inc foi desfeito (rollback)
-    expect(mailer.sent).toHaveLength(0);
+    // Só o de boas-vindas (do cadastro); nenhum de depósito.
+    expect(mailer.sent.map((mail) => mail.subject)).toEqual(['Sua conta no Bitcoinzz foi criada']);
   });
 });

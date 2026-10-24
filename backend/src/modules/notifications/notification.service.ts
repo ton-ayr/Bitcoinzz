@@ -1,5 +1,5 @@
 import type { Logger } from '../../config/logger.js';
-import { depositEmail, purchaseEmail, saleEmail } from './mail.templates.js';
+import { depositEmail, purchaseEmail, saleEmail, welcomeEmail } from './mail.templates.js';
 import type { Mailer, MailMessage } from './mailer.js';
 
 export interface Recipient {
@@ -16,7 +16,16 @@ export class NotificationService {
   constructor(
     private readonly mailer: Mailer,
     private readonly logger: Logger,
+    /** Endereço do admin para o botão dos e-mails (opcional). */
+    private readonly appUrl?: string,
   ) {}
+
+  accountCreated(recipient: Recipient): void {
+    this.dispatch({
+      to: recipient.email,
+      ...welcomeEmail(recipient.name, recipient.email, this.appUrl),
+    });
+  }
 
   depositConfirmed(recipient: Recipient, amountCents: number, balanceCents: number): void {
     this.dispatch({

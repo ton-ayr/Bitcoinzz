@@ -7,7 +7,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type SubmitEvent, type ReactNode } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FOCUS_ITEM } from '@/components/FocusGroup';
 import { MoneyField } from '@/components/MoneyField';
@@ -63,7 +63,7 @@ export function SellView() {
     if (sell.isError) sell.reset();
   }
 
-  function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setSubmitted(true);
     if (preview && !preview.error) setConfirming(true);
@@ -88,7 +88,7 @@ export function SellView() {
           title="Venda realizada!"
           description={
             result.reinvestment
-              ? 'O valor já está no seu saldo. A sobra do investimento vendido em parte continua investida.'
+              ? 'O valor já está no seu saldo, e os detalhes foram enviados para o seu e-mail. A sobra do investimento vendido em parte continua investida.'
               : 'O valor já está no seu saldo, e os detalhes foram enviados para o seu e-mail.'
           }
           rows={[

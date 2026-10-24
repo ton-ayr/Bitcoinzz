@@ -45,6 +45,18 @@ describe('loadEnv', () => {
     ).toThrow(/MAIL_FROM_EMAIL deve ser um e-mail válido/);
   });
 
+  it('APP_URL é opcional e só aceita http(s)', () => {
+    expect(loadEnv(validEnv).APP_URL).toBeUndefined();
+    expect(loadEnv({ ...validEnv, APP_URL: '' }).APP_URL).toBeUndefined();
+    expect(loadEnv({ ...validEnv, APP_URL: 'https://bitcoinzz.vercel.app' }).APP_URL).toBe(
+      'https://bitcoinzz.vercel.app',
+    );
+    expect(() => loadEnv({ ...validEnv, APP_URL: 'bitcoinzz.vercel.app' })).toThrow(
+      /APP_URL deve ser uma URL http\(s\)/,
+    );
+    expect(() => loadEnv({ ...validEnv, APP_URL: 'javascript:alert(1)' })).toThrow(/APP_URL/);
+  });
+
   it('falha com mensagem clara quando falta variável ou o segredo é curto', () => {
     expect(() => loadEnv({ JWT_SECRET: 'curto' })).toThrow(/MONGODB_URI[\s\S]*JWT_SECRET/);
   });

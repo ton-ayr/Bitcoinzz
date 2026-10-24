@@ -1,14 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthService } from '../../src/modules/auth/auth.service.js';
 import { JwtTokenService } from '../../src/modules/auth/token-service.js';
+import { NotificationService } from '../../src/modules/notifications/notification.service.js';
 import { ConflictError, UnauthorizedError } from '../../src/shared/errors/app-error.js';
-import { FakePasswordHasher, InMemoryUserRepository } from '../helpers/fakes.js';
-import { TEST_JWT_SECRET } from '../helpers/test-app.js';
+import { FakeMailer, FakePasswordHasher, InMemoryUserRepository } from '../helpers/fakes.js';
+import { silentLogger, TEST_JWT_SECRET } from '../helpers/test-app.js';
 
 describe('AuthService', () => {
   let users: InMemoryUserRepository;
   let hasher: FakePasswordHasher;
   let tokens: JwtTokenService;
+  let mailer: FakeMailer;
   let service: AuthService;
 
   const fulano = { name: 'Fulano da Silva', email: 'fulano@email.com', password: 'fulano123' };
@@ -17,7 +19,8 @@ describe('AuthService', () => {
     users = new InMemoryUserRepository();
     hasher = new FakePasswordHasher();
     tokens = new JwtTokenService(TEST_JWT_SECRET, '8h');
-    service = new AuthService(users, hasher, tokens);
+    mailer = new FakeMailer();
+    service = new AuthService(users, hasher, tokens, new NotificationService(mailer, silentLogger));
   });
 
   describe('register', () => {
@@ -32,6 +35,21 @@ describe('AuthService', () => {
     it('e-mail já cadastrado → 409', async () => {
       await service.register(fulano);
       await expect(service.register(fulano)).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it('envia o e-mail de boas-vindas para a conta criada', async () => {
+      await service.register(fulano);
+      await vi.waitFor(() => expect(mailer.sent).toHaveLength(1));
+      expect(mailer.sent[0]).toMatchObject({
+        to: fulano.email,
+        subject: 'Sua conta no Bitcoinzz foi criada',
+      });
+    });
+
+    it('cadastro recusado (409) não envia e-mail', async () => {
+      await service.register(fulano);
+      await expect(service.register(fulano)).rejects.toBeInstanceOf(ConflictError);
+      expect(mailer.sent).toHaveLength(1); // só o do primeiro cadastro
     });
   });
 

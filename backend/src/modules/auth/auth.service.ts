@@ -1,4 +1,5 @@
 import { UnauthorizedError } from '../../shared/errors/app-error.js';
+import type { NotificationService } from '../notifications/notification.service.js';
 import type { User, UserRepository } from '../users/user.repository.js';
 import type { LoginInput, RegisterInput } from './auth.schemas.js';
 import type { PasswordHasher } from './password-hasher.js';
@@ -17,11 +18,17 @@ export class AuthService {
     private readonly users: UserRepository,
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async register(input: RegisterInput): Promise<User> {
     const passwordHash = await this.hasher.hash(input.password);
-    return this.users.create({ name: input.name, email: input.email, passwordHash });
+    const user = await this.users.create({ name: input.name, email: input.email, passwordHash });
+
+    // Só depois de salvar: e-mail duplicado (409) lança antes e não gera e-mail.
+    this.notifications.accountCreated(user);
+
+    return user;
   }
 
   async login(input: LoginInput): Promise<{ token: string }> {

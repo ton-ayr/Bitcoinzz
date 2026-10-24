@@ -1,7 +1,7 @@
 'use client';
 
 import CssBaseline from '@mui/material/CssBaseline';
-import { ThemeProvider } from '@mui/material/styles';
+import { alpha, ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig } from 'motion/react';
 import { useState, type ReactNode } from 'react';
@@ -38,7 +38,7 @@ export function Providers({ children }: { children: ReactNode }) {
             richColors
             toastOptions={{
               style: {
-                background: 'rgba(22, 23, 29, 0.85)',
+                background: alpha(colors.surface, 0.85),
                 backdropFilter: 'blur(16px)',
                 border: `1px solid ${colors.border}`,
                 fontFamily: 'var(--font-jakarta)',

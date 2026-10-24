@@ -29,6 +29,7 @@ try {
 const container = createContainer({
   jwtSecret: env.JWT_SECRET,
   jwtExpiresIn: env.JWT_EXPIRES_IN,
+  appUrl: env.APP_URL,
   logger,
   quote: { apiUrl: env.QUOTE_API_URL, cacheTtlSeconds: env.QUOTE_CACHE_TTL_SECONDS },
   mail: {

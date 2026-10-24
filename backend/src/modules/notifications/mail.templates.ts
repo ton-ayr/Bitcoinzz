@@ -13,6 +13,11 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Botão = link com estilos inline (clientes de e-mail ignoram CSS externo). */
+function button(label: string, url: string): string {
+  return `<a href="${escapeHtml(url)}" style="display:inline-block;margin:8px 0;padding:12px 24px;background:#5865F2;color:#FFFFFF;border-radius:8px;text-decoration:none;font-weight:bold">${escapeHtml(label)}</a>`;
+}
+
 /** Layout simples e compatível com clientes de e-mail (tabela + estilos inline). */
 function layout(title: string, paragraphs: string[]): string {
   const body = paragraphs
@@ -27,6 +32,33 @@ function layout(title: string, paragraphs: string[]): string {
 <tr><td style="padding:24px 28px"><h1 style="margin:0 0 16px;font-size:18px">${title}</h1>${body}</td></tr>
 <tr><td style="padding:16px 28px;font-size:12px;color:#A3A6B4">Plataforma simulada de investimentos. Nenhum valor real foi movimentado.</td></tr>
 </table></td></tr></table></body></html>`;
+}
+
+/** `appUrl` é opcional: sem ele, o e-mail sai sem o botão de acesso. */
+export function welcomeEmail(name: string, email: string, appUrl?: string): EmailContent {
+  const nextSteps =
+    'Próximos passos: faça um depósito em reais e use o saldo para comprar bitcoin. ' +
+    'No dashboard você acompanha a cotação e o resultado dos seus investimentos.';
+  const notMe = 'Se não foi você que criou esta conta, ignore este e-mail.';
+
+  return {
+    subject: 'Sua conta no Bitcoinzz foi criada',
+    text: [
+      `Olá, ${name}!`,
+      `Sua conta foi criada com sucesso. Para entrar, use o e-mail ${email}.`,
+      nextSteps,
+      ...(appUrl ? [`Acesse: ${appUrl}`] : []),
+      notMe,
+      'Bitcoinzz',
+    ].join('\n\n'),
+    html: layout('Boas-vindas ao Bitcoinzz!', [
+      `Olá, ${escapeHtml(name)}!`,
+      `Sua conta foi criada com sucesso. Para entrar, use o e-mail <strong>${escapeHtml(email)}</strong>.`,
+      nextSteps,
+      ...(appUrl ? [button('Acessar o Bitcoinzz', appUrl)] : []),
+      `<span style="font-size:13px;color:#A3A6B4">${notMe}</span>`,
+    ]),
+  };
 }
 
 export function depositEmail(

@@ -6,6 +6,7 @@ import Card from '@mui/material/Card';
 import IconButton from '@mui/material/IconButton';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import type { ReactNode } from 'react';
 import { FOCUS_ITEM } from '@/components/FocusGroup';
@@ -44,7 +45,7 @@ export function StatCard({
             borderRadius: 2.5,
             display: 'grid',
             placeItems: 'center',
-            bgcolor: 'rgba(88, 101, 242, 0.16)',
+            bgcolor: alpha(colors.blurple, 0.16),
             color: colors.blurpleLight,
             '& svg': { fontSize: 20 },
           }}

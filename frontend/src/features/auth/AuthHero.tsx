@@ -6,6 +6,7 @@ import ShowChartRoundedIcon from '@mui/icons-material/ShowChartRounded';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { motion } from 'motion/react';
 import { FOCUS_ITEM, FocusGroup } from '@/components/FocusGroup';
@@ -108,7 +109,7 @@ export function AuthHero() {
                 borderRadius: 2.5,
                 display: 'grid',
                 placeItems: 'center',
-                bgcolor: 'rgba(88, 101, 242, 0.16)',
+                bgcolor: alpha(colors.blurple, 0.16),
                 color: colors.blurpleLight,
                 flexShrink: 0,
               }}

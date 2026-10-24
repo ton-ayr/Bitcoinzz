@@ -39,6 +39,10 @@ const envSchema = z
       z.email('MAIL_FROM_EMAIL deve ser um e-mail válido').optional(),
     ),
     MAIL_FROM_NAME: z.string().trim().min(1).default('Bitcoinzz'),
+    // Endereço do admin (front), usado no botão dos e-mails. Sem ela, os e-mails saem sem o botão.
+    APP_URL: optionalString.pipe(
+      z.url({ protocol: /^https?$/, error: 'APP_URL deve ser uma URL http(s)' }).optional(),
+    ),
   })
   .superRefine((env, ctx) => {
     const mailjet = [env.MAILJET_API_KEY, env.MAILJET_SECRET_KEY, env.MAIL_FROM_EMAIL];

@@ -166,6 +166,25 @@ describe('StatementView', () => {
     expect(screen.getByRole('button', { name: 'Tentar carregar Depositado de novo' })).toBeTruthy();
   });
 
+  it('período inválido: avisa, não busca e não mostra números de outras datas', async () => {
+    const fetchMock = mockStatement();
+    const user = userEvent.setup();
+    renderWithQuery(<StatementView />);
+    await screen.findByRole('region', { name: 'Hoje' });
+
+    // "De" em 01/01/2025: mais de 366 dias até hoje (07/10/2026).
+    const from = screen.getByRole('group', { name: 'De' });
+    await user.click(within(from).getAllByRole('spinbutton')[0]!);
+    await user.keyboard('01012025');
+
+    expect(await screen.findByText('O período máximo é de 366 dias')).toBeTruthy();
+    expect(screen.getByText('Período inválido')).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Hoje' })).toBeNull();
+    expect(screen.getAllByText('—')).toHaveLength(3); // os 3 totais, sem números do período anterior
+    // Datas intermediárias válidas (01/07/2026, 01/01/2026) buscam; a inválida, não.
+    expect(requestedUrls(fetchMock).some((url) => url.includes('from=2025-01-01'))).toBe(false);
+  });
+
   it('período sem lançamentos: estado vazio e CSV desligado', async () => {
     mockStatement([]);
     renderWithQuery(<StatementView />);

@@ -8,7 +8,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { FOCUS_ITEM, FocusGroup } from '@/components/FocusGroup';
 import { MoneyField } from '@/components/MoneyField';
 import { PageHeader } from '@/components/PageHeader';
@@ -53,7 +53,7 @@ export function DepositView() {
     if (deposit.isError) deposit.reset();
   }
 
-  function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setSubmitted(true);
     if (!preview.error) deposit.mutate(amountCents);
@@ -71,7 +71,7 @@ export function DepositView() {
         <PageHeader title={TITLE} />
         <SuccessPanel
           title="Depósito realizado!"
-          description="O valor já está disponível para investir."
+          description="O valor já está disponível para investir, e a confirmação foi enviada para o seu e-mail."
           rows={[
             { label: 'Valor depositado', value: brl(deposit.variables) },
             { label: 'Novo saldo', value: formatBRL(deposit.data.balance), emphasis: true },

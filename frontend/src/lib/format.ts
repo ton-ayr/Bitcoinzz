@@ -27,9 +27,12 @@ export function formatBRL(value: number): string {
   return brl.format(value);
 }
 
-/** 0.00058381 → "₿ 0,00058381" */
+/**
+ * 0.00058381 → "₿ 0,00058381". O espaço é não separável (U+00A0), como o do "R$": assim
+ * o símbolo nunca fica no fim de uma linha e o número no começo da outra.
+ */
 export function formatBTC(value: number): string {
-  return `₿ ${btc.format(value)}`;
+  return `₿ ${btc.format(value)}`;
 }
 
 /** 25 → "+25,00%"; −16.67 → "-16,67%"; 0 → "0,00%" */

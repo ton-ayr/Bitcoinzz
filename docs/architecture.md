@@ -43,7 +43,7 @@ flowchart LR
 backend/
 ├── docs/openapi.yaml        # Swagger escrito à mão, servido em /docs (um teste confere que bate com as rotas)
 └── src/
-    ├── server.ts            # subida: variáveis → banco → job → listen; desligamento com calma (SIGTERM)
+    ├── server.ts            # subida: variáveis → banco → listen → job; desligamento com calma (SIGTERM)
     ├── app.ts               # middlewares globais, rotas, /docs, 404 e tratador de erros
     ├── container.ts         # monta repositories → services → controllers (injeção de dependência manual)
     ├── config/              # env.ts (Zod), database.ts, logger.ts
@@ -121,7 +121,7 @@ sequenceDiagram
   C->>UI: digita R$ 600, revisa a prévia FIFO e confirma
   UI->>BFF: POST /api/btc/sell { amount: 600 } (cookie)
   BFF->>API: POST /btc/sell + Bearer (só rotas da allowlist)
-  API->>API: rate limit · autenticação · validação (Zod) → 60000 centavos
+  API->>API: autenticação · rate limit · validação (Zod) → 60000 centavos
   API->>MB: cotação de compra (se o cache de 10 s expirou)
   API->>DB: TRANSAÇÃO: encerra investimentos (FIFO) · cria o reinvestimento · credita o saldo · lança SALE + REINVESTMENT
   API--)MAIL: e-mail da venda (sem esperar)
@@ -136,7 +136,8 @@ sequenceDiagram
 | Validação | 400 com `details` | Mensagem no campo |
 | Valor acima da posição ou do saldo | 422 | Mensagem no formulário (a prévia já avisa antes) |
 | Mercado Bitcoin fora do ar | 503 | "Cotação indisponível" com "Tentar de novo" |
-| API fora do ar ou dormindo | BFF espera até ~90 s; depois, 503/504 | "Acordando o servidor…" e, se falhar, estados de erro com "Tentar de novo" |
+| API dormindo (plano gratuito) | BFF espera até ~90 s; depois, 504 | "Acordando o servidor…" e, se não acordar, estados de erro com "Tentar de novo" |
+| API fora do ar | BFF responde 503 na hora | Estados de erro com "Tentar de novo"; no login, "Servidor indisponível no momento" |
 | Escrita simultânea | Transação refeita automaticamente | Nada |
 | Falha no envio do e-mail | Logada; a operação já foi concluída | Nada |
 
@@ -172,10 +173,12 @@ frontend/src/
 |---|---|
 | Roubo de token (XSS) | JWT só em cookie httpOnly; o JavaScript da página nunca o lê |
 | CSRF | `SameSite=Lax` + checagem de `Origin` nos POST do BFF |
-| Força bruta no login | 10 erros por e-mail a cada 15 min (atrás do BFF todos chegam com o IP da Vercel); cadastro limitado por IP; 300 req/15 min por usuário |
+| Força bruta no login | 10 erros por e-mail a cada 15 min (atrás do BFF todos chegam com o IP da Vercel); 300 req/15 min por usuário |
+| Cadastros em massa | 30 por hora por IP. Pelo admin, todos chegam com o IP da Vercel, então o limite é compartilhado (suficiente para o volume do projeto) |
 | Enumeração de usuários | Mensagem genérica e tempo de resposta igual (hash fictício quando o e-mail não existe) |
 | Senhas vazadas | bcrypt (custo 10); `passwordHash` com `select: false` |
 | Entrada maliciosa | Zod em todo body e query; corpo limitado a 10 kB |
+| E-mail para endereço não confirmado | O cadastro não confirma o e-mail (decisão consciente): o nome é escapado no HTML e o limite de cadastros segura o volume; na pior hipótese, a cota diária da Mailjet acaba e os e-mails do dia ficam só no log |
 | Headers e proxy | helmet; `trust proxy` só em produção; `x-request-id` aceito só se for alfanumérico |
 | Segredos | Só em variáveis de ambiente (fora do git e das imagens Docker); `env.ts` valida na subida |
 | Dados em logs | `redact` do pino em `authorization`, `password` e cookies |
@@ -190,11 +193,15 @@ frontend/src/
 | Venda parcial gera reinvestimento com a cotação e a data originais | Nenhum BTC é criado ou perdido, e a fila FIFO continua correta |
 | Compra e venda usam a cotação do cache (até 10 s) | É a mesma que o cliente vê na prévia e respeita o limite de 1 req/s do Mercado Bitcoin |
 | Cotação pelo endpoint v4 do Mercado Bitcoin | A URL v3 do enunciado não consta mais na documentação oficial |
+| Mailjet em vez de SendGrid ou Mandrill (sugeridos no desafio) | Plano gratuito sem prazo e envio por API HTTP, já que o Render free bloqueia as portas de SMTP |
+| Admin consome a própria API (bônus full-stack), e não a API de exemplo do desafio | Mesmas rotas da coleção Postman, com as regras de negócio sob controle do projeto |
+| TanStack Query em vez de RxJS ou Redux (sugeridos no desafio de frontend) | Quase todo o estado é dado do servidor; cache, atualização periódica e invalidação depois das operações vêm prontos, com menos código |
 | JWT em cookie httpOnly via BFF, sessão de 8 h sem refresh token | Protege o token contra XSS e esconde a URL da API; simples de manter |
 | Rate limit do login por e-mail | Atrás do BFF o IP é sempre o da Vercel; repassar o IP do cliente permitiria falsificação |
 | Swagger escrito à mão + teste de contrato | Fácil de ler neste tamanho de API; o teste impede que a doc e as rotas divirjam |
 | Sem keep-alive no Render | Não gasta as horas grátis; o backfill e o pré-aquecimento na tela de login compensam |
 | TypeScript fixado em 6.0.x | O typescript-eslint ainda não suporta o TypeScript 7 |
+| Next e `eslint-config-next` fixados na mesma versão exata | Atualização sempre consciente (os dois juntos), conferida com `npm audit` e a suíte completa |
 | Cache Components ligado no Next 16 | Padrão do Next daqui em diante; leituras de cookie ficam em `<Suspense>` |
 | API configurada por `render.yaml` e deploy só com o CI verde | Infraestrutura versionada; nada quebrado chega à produção |
 
@@ -206,7 +213,8 @@ Serviços de terceiros mudam limites, preços e APIs. Ao mexer em uma integraç�
 |---|---|---|---|---|
 | Mercado Bitcoin (API v4) | `GET /tickers?symbols=BTC-BRL` (cotação) e `GET /candles` (backfill) | 1 req/s por endpoint; valores vêm como texto; só há candle em minutos com negociação | [api v4](https://api.mercadobitcoin.net/api/v4/docs) | 06/10/2026 |
 | MongoDB Atlas (M0) | Banco de produção | 0,5 GB; pausa após 30 dias sem uso; lista de IPs aceita faixas CIDR | [limites do M0](https://www.mongodb.com/docs/atlas/reference/free-shared-limitations/) · [lista de IPs](https://www.mongodb.com/docs/atlas/security/ip-access-list/) | 08/10/2026 |
-| Render (free) | API (`render.yaml`) | Dorme após 15 min sem tráfego (~1 min para acordar); 750 h/mês por conta; IPs de saída fixos por região e compartilhados; **portas de SMTP (25, 465, 587) bloqueadas**, por isso o e-mail sai por API HTTP; no `render.yaml`, o `buildFilter` usa `paths`/`ignoredPaths` (relativos à raiz do repositório, mesmo com `rootDir`) e o `autoDeployTrigger` aceita `commit`, `checksPass` ou `off` | [plano free](https://render.com/docs/free) · [IPs de saída](https://render.com/docs/outbound-ip-addresses) · [Blueprint](https://render.com/docs/blueprint-spec) · [JSON Schema](https://render.com/schema/render.yaml.json) · [monorepo](https://render.com/docs/monorepo-support) | 23/10/2026 |
-| Vercel (Hobby) | Admin (Root Directory `frontend`) | Uso pessoal e não comercial; funções até 300 s | [plano Hobby](https://vercel.com/docs/plans/hobby) | 08/10/2026 |
-| Mailjet (free) | E-mails pela Send API v3.1 (`POST https://api.mailjet.com/v3.1/send`, autenticação Basic com a chave pública e a privada) | 6.000 e-mails/mês e 200/dia, sem prazo; remetente validado por e-mail (não exige domínio próprio); sem domínio próprio pode cair no spam; erros 400/401/403 com `ErrorMessage` | [preços](https://www.mailjet.com/pricing/) · [Send API v3.1](https://dev.mailjet.com/email/guides/send-api-v31/) · [validação de remetente](https://dev.mailjet.com/docs/email-api/senders-domains/sender-validation) | 09/10/2026 |
+| Render (free) | API (`render.yaml`) | Dorme após 15 min sem tráfego (~1 min para acordar); 750 h/mês por conta; IPs de saída fixos por região e compartilhados; **portas de SMTP (25, 465, 587) bloqueadas**, por isso o e-mail sai por API HTTP; no `render.yaml`, o `buildFilter` usa `paths`/`ignoredPaths` (relativos à raiz do repositório, mesmo com `rootDir`) e o `autoDeployTrigger` aceita `commit`, `checksPass` ou `off`; mudanças no `render.yaml` são aplicadas no push (Auto Sync); a versão do Node vem do `.nvmrc` (precede o `engines`) e só muda num novo build | [plano free](https://render.com/docs/free) · [IPs de saída](https://render.com/docs/outbound-ip-addresses) · [Blueprint](https://render.com/docs/blueprint-spec) · [Auto Sync](https://render.com/docs/infrastructure-as-code) · [JSON Schema](https://render.com/schema/render.yaml.json) · [monorepo](https://render.com/docs/monorepo-support) · [versão do Node](https://render.com/docs/node-version) | 23/10/2026 |
+| Vercel (Hobby) | Admin (Root Directory `frontend`) | Uso pessoal e não comercial; funções até 300 s; Node 24.x (escolhe-se só a versão maior; a Vercel aplica sozinha os patches de segurança) | [plano Hobby](https://vercel.com/docs/plans/hobby) · [versões do Node](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions) | 23/10/2026 |
+| Node.js 24 (LTS "Krypton") | Runtime da API, do admin, do Docker e do CI (`.nvmrc` = `24`) | Só a versão maior é fixada, então cada build pega o último patch; a 24.22.1 (21/10/2026) corrige CVEs altos, entre eles o do brotli, formato que o Express aceita no corpo das requisições | [versões](https://nodejs.org/en/about/previous-releases) · [segurança de out/2026](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases) | 23/10/2026 |
+| Mailjet (free) | E-mails (boas-vindas, depósito, compra e venda) pela Send API v3.1 (`POST https://api.mailjet.com/v3.1/send`, autenticação Basic com a chave pública e a privada) | 6.000 e-mails/mês e 200/dia, sem prazo; remetente validado por e-mail (não exige domínio próprio); sem domínio próprio pode cair no spam; erros 400/401/403 com `ErrorMessage` | [preços](https://www.mailjet.com/pricing/) · [Send API v3.1](https://dev.mailjet.com/email/guides/send-api-v31/) · [validação de remetente](https://dev.mailjet.com/docs/email-api/senders-domains/sender-validation) | 23/10/2026 |
 | GitHub Actions | CI (lint, tipos, testes e build) | Grátis para repositório público; `actions/checkout@v7` e `actions/setup-node@v7` | [setup-node](https://github.com/actions/setup-node) | 08/10/2026 |

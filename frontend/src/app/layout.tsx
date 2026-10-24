@@ -2,6 +2,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { colors } from '@/theme/tokens';
 import { Providers } from './providers';
 
 // next/font baixa a fonte no build e a serve do próprio site (sem requisição ao Google no navegador).
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0B0C10',
+  themeColor: colors.background,
   colorScheme: 'dark',
 };
 

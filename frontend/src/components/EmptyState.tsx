@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import type { ReactNode } from 'react';
 import { colors } from '@/theme/tokens';
@@ -25,7 +26,7 @@ export function EmptyState({
           borderRadius: 4,
           display: 'grid',
           placeItems: 'center',
-          bgcolor: 'rgba(88, 101, 242, 0.14)',
+          bgcolor: alpha(colors.blurple, 0.14),
           color: colors.blurpleLight,
           '& svg': { fontSize: 28 },
         }}

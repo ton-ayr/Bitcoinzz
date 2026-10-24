@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
 import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import {
   ChartsTooltipContainer,
@@ -43,7 +44,7 @@ function HistoryTooltip(props: ChartsTooltipProps) {
           sx={{
             p: 1.5,
             borderRadius: 2,
-            bgcolor: 'rgba(22, 23, 29, 0.92)',
+            bgcolor: alpha(colors.surface, 0.92),
             border: `1px solid ${colors.border}`,
             backdropFilter: 'blur(12px)',
             minWidth: 180,
@@ -118,7 +119,8 @@ export function HistoryChart() {
         <PointsContext.Provider value={points}>
           <LineChart
             height={290}
-            margin={{ left: 8, right: 8, top: 16, bottom: 8 }}
+            // À direita, espaço para meia etiqueta de horário: a marca na borda não vira "2…".
+            margin={{ left: 8, right: 24, top: 16, bottom: 8 }}
             xAxis={[
               {
                 data: series.times,

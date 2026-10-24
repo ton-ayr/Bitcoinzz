@@ -68,6 +68,8 @@ export interface ContainerSettings {
   jwtSecret: string;
   jwtExpiresIn: string;
   mail: MailSettings;
+  /** Endereço do admin, usado no botão dos e-mails (opcional). */
+  appUrl?: string;
   quote: { apiUrl: string; cacheTtlSeconds: number };
   logger: Logger;
 }
@@ -110,7 +112,7 @@ export function createContainer(
     mailer: overrides.mailer ?? createMailer(settings.mail, logger),
   };
 
-  const notifications = new NotificationService(dependencies.mailer, logger);
+  const notifications = new NotificationService(dependencies.mailer, logger, settings.appUrl);
   const quoteService = new QuoteService(
     dependencies.quoteProvider,
     settings.quote.cacheTtlSeconds * 1000,
@@ -125,6 +127,7 @@ export function createContainer(
     dependencies.userRepository,
     dependencies.passwordHasher,
     dependencies.tokenService,
+    notifications,
   );
   const accountService = new AccountService(
     dependencies.userRepository,

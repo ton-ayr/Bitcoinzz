@@ -19,8 +19,12 @@ describe('format', () => {
   });
 
   it('BTC sempre com 8 casas', () => {
-    expect(formatBTC(0.00058381)).toBe('₿ 0,00058381');
-    expect(formatBTC(1)).toBe('₿ 1,00000000');
+    expect(normalize(formatBTC(0.00058381))).toBe('₿ 0,00058381');
+    expect(normalize(formatBTC(1))).toBe('₿ 1,00000000');
+  });
+
+  it('BTC: o símbolo não se separa do número na quebra de linha', () => {
+    expect(formatBTC(1)).toBe('₿ 1,00000000');
   });
 
   it('percentual com sinal (zero sem sinal)', () => {

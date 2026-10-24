@@ -7,7 +7,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type SubmitEvent, type ReactNode } from 'react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { FOCUS_ITEM } from '@/components/FocusGroup';
 import { MoneyField } from '@/components/MoneyField';
@@ -55,7 +55,7 @@ export function PurchaseView() {
     if (purchase.isError) purchase.reset();
   }
 
-  function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     setSubmitted(true);
     if (ready && !preview.error) setConfirming(true);

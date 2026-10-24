@@ -9,7 +9,7 @@ import SwapVertRoundedIcon from '@mui/icons-material/SwapVertRounded';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
-import { keyframes } from '@mui/material/styles';
+import { alpha, keyframes } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
 import { FocusGroup } from '@/components/FocusGroup';
@@ -21,9 +21,9 @@ import { colors } from '@/theme/tokens';
 import { useBalance, usePosition, useQuote, useVolume } from './queries';
 
 const pulse = keyframes`
-  0%   { box-shadow: 0 0 0 0 rgba(35, 165, 90, 0.6); }
-  70%  { box-shadow: 0 0 0 9px rgba(35, 165, 90, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(35, 165, 90, 0); }
+  0%   { box-shadow: 0 0 0 0 ${alpha(colors.success, 0.6)}; }
+  70%  { box-shadow: 0 0 0 9px ${alpha(colors.success, 0)}; }
+  100% { box-shadow: 0 0 0 0 ${alpha(colors.success, 0)}; }
 `;
 
 function LiveBadge() {

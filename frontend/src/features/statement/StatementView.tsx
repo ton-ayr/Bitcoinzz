@@ -35,6 +35,7 @@ import {
   TRANSACTION_TYPES,
   type DateRange,
   type PeriodPreset,
+  type PeriodTotals,
 } from './statement';
 import { StatementFilters } from './StatementFilters';
 import { StatementList } from './StatementList';
@@ -49,6 +50,66 @@ const PANEL_SX = { p: { xs: 2, sm: 3 }, '&:hover': { transform: 'none' } } as co
 const brl = (cents: number) => formatBRL(toReais(cents));
 const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
+/** Totais do período. Com período inválido, mostram "—" (R$ 0,00 pareceria um período vazio). */
+function PeriodTotalCards({
+  totals,
+  invalid,
+  loading,
+  error,
+  onRetry,
+}: {
+  totals: PeriodTotals;
+  invalid: boolean;
+  loading: boolean;
+  error: boolean;
+  onRetry: () => void;
+}) {
+  const value = (cents: number) => (invalid ? '—' : brl(cents));
+  const footer = (text: string) => (invalid ? undefined : text);
+  const btcIn = (sats: number, count: string) => `${formatBTC(satsToBtc(sats))} em ${count}`;
+
+  return (
+    <FocusGroup
+      sx={{
+        display: 'grid',
+        gap: 2.5,
+        mb: 3,
+        gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+      }}
+    >
+      <StatCard
+        label="Depositado"
+        icon={<AddCardRoundedIcon />}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+        value={value(totals.depositedCents)}
+        footer={footer(plural(totals.counts.DEPOSIT, 'depósito', 'depósitos'))}
+      />
+      <StatCard
+        label="Comprado"
+        icon={<CallMadeRoundedIcon />}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+        value={value(totals.purchasedCents)}
+        footer={footer(
+          btcIn(totals.purchasedSats, plural(totals.counts.PURCHASE, 'compra', 'compras')),
+        )}
+      />
+      <StatCard
+        label="Vendido"
+        icon={<CallReceivedRoundedIcon />}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+        value={value(totals.soldCents)}
+        footer={footer(btcIn(totals.soldSats, plural(totals.counts.SALE, 'venda', 'vendas')))}
+      />
+    </FocusGroup>
+  );
+}
+
 export function StatementView() {
   // "Hoje" só existe no navegador (null na pré-renderização): o período depende dele.
   const today = useToday();
@@ -60,7 +121,8 @@ export function StatementView() {
   const invalid = range ? rangeError(range) : null;
   const statement = useStatement(range && !invalid ? range : null);
 
-  const transactions = statement.data?.transactions ?? [];
+  // Período inválido: nada do período anterior fica na tela (seriam números de outras datas).
+  const transactions = invalid ? [] : (statement.data?.transactions ?? []);
   const totals = periodTotals(transactions);
   const visible =
     typeFilter === 'ALL' ? transactions : transactions.filter((item) => item.type === typeFilter);
@@ -84,7 +146,15 @@ export function StatementView() {
   );
 
   let content;
-  if (loading) {
+  if (invalid) {
+    content = (
+      <EmptyState
+        icon={<ReceiptLongRoundedIcon />}
+        title="Período inválido"
+        description="Ajuste as datas acima para ver as movimentações."
+      />
+    );
+  } else if (loading) {
     content = (
       <Stack spacing={1.5} sx={{ py: 1 }}>
         {[0, 1, 2, 3].map((index) => (
@@ -110,7 +180,7 @@ export function StatementView() {
       <EmptyState
         icon={<ReceiptLongRoundedIcon />}
         title="Nenhuma movimentação no período"
-        description="Escolha um período maior ou faça o seu primeiro depósito."
+        description="Escolha outro período ou faça um depósito."
         action={
           <Button component={NextLink} href="/deposit" variant="contained">
             Depositar
@@ -172,42 +242,13 @@ export function StatementView() {
         )}
       </Card>
 
-      <FocusGroup
-        sx={{
-          display: 'grid',
-          gap: 2.5,
-          mb: 3,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-        }}
-      >
-        <StatCard
-          label="Depositado"
-          icon={<AddCardRoundedIcon />}
-          loading={loading}
-          error={statement.isError}
-          onRetry={() => statement.refetch()}
-          value={brl(totals.depositedCents)}
-          footer={plural(totals.counts.DEPOSIT, 'depósito', 'depósitos')}
-        />
-        <StatCard
-          label="Comprado"
-          icon={<CallMadeRoundedIcon />}
-          loading={loading}
-          error={statement.isError}
-          onRetry={() => statement.refetch()}
-          value={brl(totals.purchasedCents)}
-          footer={`${formatBTC(satsToBtc(totals.purchasedSats))} em ${plural(totals.counts.PURCHASE, 'compra', 'compras')}`}
-        />
-        <StatCard
-          label="Vendido"
-          icon={<CallReceivedRoundedIcon />}
-          loading={loading}
-          error={statement.isError}
-          onRetry={() => statement.refetch()}
-          value={brl(totals.soldCents)}
-          footer={`${formatBTC(satsToBtc(totals.soldSats))} em ${plural(totals.counts.SALE, 'venda', 'vendas')}`}
-        />
-      </FocusGroup>
+      <PeriodTotalCards
+        totals={totals}
+        invalid={invalid !== null}
+        loading={loading}
+        error={statement.isError}
+        onRetry={() => statement.refetch()}
+      />
 
       <Card sx={PANEL_SX}>
         <Stack
@@ -230,7 +271,12 @@ export function StatementView() {
           </FocusGroup>
         </Stack>
         {/* Enquanto o período novo carrega, o anterior fica mais apagado. */}
-        <Box sx={{ opacity: statement.isPlaceholderData ? 0.5 : 1, transition: 'opacity 200ms' }}>
+        <Box
+          sx={{
+            opacity: statement.isPlaceholderData && !invalid ? 0.5 : 1,
+            transition: 'opacity 200ms',
+          }}
+        >
           {content}
         </Box>
       </Card>

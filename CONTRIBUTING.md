@@ -48,15 +48,29 @@ Os mesmos nas duas pastas (`backend/` e `frontend/`):
 - No front, lógica pura em `*.test.ts` e telas com Testing Library (`// @vitest-environment jsdom`).
 - O CI roda em UTC: não dependa do fuso da máquina (use os utilitários de data com `America/Sao_Paulo`).
 
+## Documentação
+
+Cada informação mora em um lugar só; os outros documentos apontam para ela. Textos em pt-BR.
+
+| Documento | O que fica nele | Atualize quando |
+|---|---|---|
+| [`README.md`](README.md) | Vitrine: o que é, telas, como rodar, rotas, regras de negócio e deploy | Mudar algo que o usuário ou o avaliador vê (funcionalidade, rota, variável, comando) |
+| [`docs/architecture.md`](docs/architecture.md) | Como e por quê: componentes, dados, fluxos, segurança, decisões e integrações | Mudar a estrutura, tomar uma decisão ou mexer numa integração (atualize a data da tabela) |
+| `CONTRIBUTING.md` | Como trabalhar: ambiente, convenções, testes, commits e dependências | Mudar uma convenção ou um passo do fluxo de trabalho |
+| [`backend/docs/openapi.yaml`](backend/docs/openapi.yaml) | Contrato da API (o Swagger de `/docs`) | Mudar uma rota, um campo ou uma mensagem (o teste de contrato confere) |
+| [`CLAUDE.md`](CLAUDE.md) | Comandos e regras curtas para o assistente de IA | Mudar um comando ou uma regra de trabalho |
+| [`docs/images/`](docs/images) | Capturas do README (1440 px de largura, JPEG) | A tela mudar bastante (refaça com uma conta de demonstração, sem dados reais) |
+
 ## Commits e pull requests
 
 - Mensagens no padrão [Conventional Commits](https://www.conventionalcommits.org/pt-br/): `feat(api): ...`, `fix(web): ...`, `docs: ...`, `test: ...`, `chore: ...`.
-- Antes de abrir o PR, nas duas pastas: `npm run lint && npm run typecheck && npm test && npm run build`. O CI repete isso, e o Render só publica a API com ele verde.
+- Antes de commitar (ou de abrir um PR), nas duas pastas: `npm run lint && npm run typecheck && npm test && npm run build`. O CI repete isso, e o Render só publica a API com ele verde.
 - Mexeu numa integração externa (Mercado Bitcoin, Atlas, Render, Vercel, Mailjet)? Confira a documentação oficial atual e atualize a tabela [Integrações externas](docs/architecture.md#integrações-externas).
 - Mudanças de custo ou de segurança, ou difíceis de desfazer, precisam de alinhamento antes da implementação. O projeto só usa planos gratuitos sem prazo.
 
 ## Dependências
 
 - Atualize com `npm outdated` e rode a suíte completa depois.
-- Confira `npm audit --omit=dev` (dependências de produção).
+- Confira `npm audit` nas duas pastas (`npm audit --omit=dev` mostra só as dependências de produção).
+- Next e `eslint-config-next` ficam na mesma versão exata, sem `^`: atualize os dois juntos (`npm install --save-exact`).
 - TypeScript continua em 6.0.x até o typescript-eslint suportar a versão 7.

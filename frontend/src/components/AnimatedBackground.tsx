@@ -22,7 +22,7 @@ const blobs = [
     opacity: 0.5,
   },
   { color: colors.violet, size: '38vmax', top: '35%', left: '62%', duration: '32s', opacity: 0.38 },
-  { color: '#2B6CF6', size: '30vmax', top: '70%', left: '-8%', duration: '38s', opacity: 0.3 },
+  { color: colors.blue, size: '30vmax', top: '70%', left: '-8%', duration: '38s', opacity: 0.3 },
 ];
 
 /**

@@ -16,7 +16,7 @@ servers:
     description: Este servidor (o mesmo endereço desta página)
   - url: http://localhost:3333
     description: Local
-  - url: https://bitcoinzz.onrender.com
+  - url: https://bitcoinzz-api.onrender.com
     description: Produção (Render, plano gratuito; pode levar ~1 min para acordar)
 tags:
   - name: Sistema
@@ -60,7 +60,7 @@ paths:
     post:
       tags: [Conta]
       summary: Cadastro
-      description: 'Senha: mínimo de 8 caracteres, com pelo menos uma letra e um número. Limite: 30 cadastros por hora por IP.'
+      description: 'Senha: mínimo de 8 caracteres, com pelo menos uma letra e um número. Limite: 30 cadastros por hora por IP. Envia um e-mail de boas-vindas.'
       security: []
       requestBody:
         required: true
@@ -220,7 +220,7 @@ paths:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/AmountInput' }
-            example: { amount: 30 }
+            example: { amount: 300 }
       responses:
         '201':
           description: Venda realizada
@@ -457,7 +457,7 @@ components:
         btcAmount: { type: number, example: 0.00187242 }
         btcPriceAtPurchase: { type: number, example: 427254 }
         priceVariationPercent:
-          { type: number, description: Variação % do preço desde a compra, example: 1.25 }
+          { type: number, description: Variação % do preço desde a compra, example: 0 }
         currentValue:
           { type: number, description: Valor bruto atual (vendendo agora), example: 799.99 }
         origin: { type: string, enum: [PURCHASE, REINVESTMENT] }
